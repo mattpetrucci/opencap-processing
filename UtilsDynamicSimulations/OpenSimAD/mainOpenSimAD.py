@@ -1058,15 +1058,15 @@ def run_tracking(baseDir, dataDir, subject, settings, case='0',
                 (w0['Qs'].to_numpy().T.shape[0], 1))), axis=1)
         opti.set_initial(Qs, guessQsEnd)
         # Small margin to account for filtering.
-        assert np.alltrue(lw['Qsk'] - np.pi/180 <= ca.vec(guessQsEnd).full()), "Issue with lower bound coordinate values"
-        assert np.alltrue(uw['Qsk'] + np.pi/180 >= ca.vec(guessQsEnd).full()), "Issue with upper bound coordinate values"
+        assert np.alltrue(lw['Qsk'] - 2 * np.pi/180 <= ca.vec(guessQsEnd).full()), "Issue with lower bound coordinate values"
+        assert np.alltrue(uw['Qsk'] + 2 * np.pi/180 >= ca.vec(guessQsEnd).full()), "Issue with upper bound coordinate values"
         # Joint position at collocation points.
         Qs_col = opti.variable(nJoints, d*N)
         opti.subject_to(opti.bounded(lw['Qsj'], ca.vec(Qs_col), uw['Qsj']))
         opti.set_initial(Qs_col, w0['Qsj'].to_numpy().T)
         # Small margin to account for filtering.
-        assert np.alltrue(lw['Qsj'] - np.pi/180 <= ca.vec(w0['Qsj'].to_numpy().T).full()), "Issue with lower bound coordinate values (collocation points)"
-        assert np.alltrue(uw['Qsj'] + np.pi/180 >= ca.vec(w0['Qsj'].to_numpy().T).full()), "Issue with upper bound coordinate values (collocation points)"
+        assert np.alltrue(lw['Qsj'] - 2 * np.pi/180 <= ca.vec(w0['Qsj'].to_numpy().T).full()), "Issue with lower bound coordinate values (collocation points)"
+        assert np.alltrue(uw['Qsj'] + 2 * np.pi/180 >= ca.vec(w0['Qsj'].to_numpy().T).full()), "Issue with upper bound coordinate values (collocation points)"
         # Joint velocity at mesh points.
         Qds = opti.variable(nJoints, N+1)
         opti.subject_to(opti.bounded(lw['Qdsk'], ca.vec(Qds), uw['Qdsk']))

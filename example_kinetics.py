@@ -125,11 +125,14 @@ Please contact us for any questions: https://www.opencap.ai/#contact
 #       - Linux   (Ubuntu 20.04):  converged in 856 iterations 
 # Select which example you would like to run.
 session_type = 'overground' # Options are 'overground' and 'treadmill'.
-session_id = "4d5c3eb1-1a59-4ea1-9178-d3634610561c"
+#session_id = "4d5c3eb1-1a59-4ea1-9178-d3634610561c"
+session_id = "OpenCapData_30eb2791-dd65-4f6b-af62-b793ee2aec3d"
+#session_id = "Pitcher01_2Cam_HRNet"
 case = '0' # Change this to compare across settings.
 # Options are 'squat', 'STS', and 'jump'.
 if session_type == 'overground': 
-    trial_name = 'STS' 
+    #trial_name = 'Rec2_LSTM' #For SFG
+    trial_name = 'Pitching' 
     if trial_name == 'squat': # Squat
         motion_type = 'squats'
         repetition = 1
@@ -139,6 +142,13 @@ if session_type == 'overground':
     elif trial_name == 'jump': # Jump  
         motion_type = 'jumping'
         time_window = [1.3, 2.2]
+    #elif trial_name == 'Rec2_LSTM': # For SFG 
+    elif trial_name == 'Pitching': # Jump 
+        motion_type = 'pitching'
+        #time_window = [1.7, 2.5] #Flat Ground
+        #time_window = [2.6, 3.1] #Drive on angle that worked
+        #time_window = [2.6, 3.1] #
+        time_window = [2.6, 4.6] #
 # Options are 'walk_1_25ms', 'run_2_5ms', and 'run_4ms'.
 elif session_type == 'treadmill': 
     trial_name = 'walk_1_25ms'

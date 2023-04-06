@@ -507,7 +507,12 @@ def generateModelWithContacts(
                                "toes_r":  np.array([0.91392399999999996, 0.91392399999999996, 0.91392399999999996]),
                                "calcn_l": np.array([0.91392399999999996, 0.91392399999999996, 0.91392399999999996]),
                                "toes_l":  np.array([0.91392399999999996, 0.91392399999999996, 0.91392399999999996])}
-    reference_contact_half_space = {"name": "floor", "location": np.array([0, 0, 0]),"orientation": np.array([0, 0, -np.pi/2]), "frame": "ground"}
+    #Slanted mounded aligned to motion after the pitcher sinks down
+    #reference_contact_half_space = {"name": "floor", "location": np.array([0.2, 0.17, -0.55]),"orientation": np.array([0, 1, ((-np.pi/2)-0.07296482044)]), "frame": "ground"}
+    #Flat mound for Pitcher01
+    #reference_contact_half_space = {"name": "floor", "location": np.array([0.2, 0.27, -0.55]),"orientation": np.array([0, 1, ((-np.pi/2))]), "frame": "ground"}
+    #Flat ground
+    reference_contact_half_space = {"name": "floor", "location": np.array([0, 0, 0]),"orientation": np.array([0, 0, ((-np.pi/2))]), "frame": "ground"}
     stiffness = 1000000
     dissipation = 2.0
     static_friction = 0.8
