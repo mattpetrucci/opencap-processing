@@ -90,57 +90,75 @@ def get_setup(motion_type):
             'positionTrackingTerm': 100,
             'velocityTrackingTerm': 10,
             'accelerationTrackingTerm': 50,
-            'activationTerm': 10,
+            'activationTerm': 1,
             'armExcitationTerm': 0.001,
             'lumbarExcitationTerm': 0.001,
-            #'jointAccelerationTerm': 10,
             'jointAccelerationTerm': 0.001,
             'activationDtTerm': 0.001,
+            'reserveActuatorTerm': 0.001,
             'forceDtTerm': 0.001},            
         'coordinates_toTrack': {
             'pelvis_tilt': {"weight": 10},
             'pelvis_list': {"weight": 10},
             'pelvis_rotation': {"weight": 10},
-            'pelvis_tx': {"weight": 10},
-            'pelvis_ty': {"weight": 10},
-            'pelvis_tz': {"weight": 10}, 
+            'pelvis_tx': {"weight": 10}, #was 10
+            'pelvis_ty': {"weight": 10}, #was 10
+            'pelvis_tz': {"weight": 10}, #was 10
             'hip_flexion_l': {"weight": 20},
-            'hip_adduction_l': {"weight": 10},
-            'hip_rotation_l': {"weight": 1},
-            'hip_flexion_r': {"weight": 20},
-            'hip_adduction_r': {"weight": 10},
-            'hip_rotation_r': {"weight": 1},
+            'hip_adduction_l': {"weight": 20},
+            'hip_rotation_l': {"weight": 20},#was 1
+             'hip_flexion_r': {"weight": 20},
+            'hip_adduction_r': {"weight": 20},
+            'hip_rotation_r': {"weight": 20}, #was 1
             'knee_angle_l': {"weight": 10},
             'knee_angle_r': {"weight": 10},
-            'ankle_angle_l': {"weight": 10},
-            'ankle_angle_r': {"weight": 10},
-            'subtalar_angle_l': {"weight": 10},
-            'subtalar_angle_r': {"weight": 10},
-            'lumbar_extension': {"weight": 10},
-            'lumbar_bending': {"weight": 10},
-            'lumbar_rotation': {"weight": 10},
-            'arm_flex_l': {"weight": 1000},
-            'arm_add_l': {"weight": 1000},
-            'arm_rot_l': {"weight": 1000},
-            'arm_flex_r': {"weight": 1000},
-            'arm_add_r': {"weight": 1000},
-            'arm_rot_r': {"weight": 1000},
-            'elbow_flex_l': {"weight": 1000},
-            'elbow_flex_r': {"weight": 1000},
-            'pro_sup_l': {"weight": 1000},
-            'pro_sup_r': {"weight": 1000}},
+            'ankle_angle_l': {"weight": 10}, #was 10
+            'ankle_angle_r': {"weight": 20}, #was 10
+            'subtalar_angle_l': {"weight": 10}, #was 10
+            'subtalar_angle_r': {"weight": 10}, #was 10
+            'lumbar_extension': {"weight": 20},  
+            'lumbar_bending': {"weight": 20},
+            'lumbar_rotation': {"weight": 20},
+            'arm_flex_l': {"weight": 10},
+            'arm_add_l': {"weight": 10},
+            'arm_rot_l': {"weight": 10},
+            'arm_flex_r': {"weight": 10},
+            'arm_add_r': {"weight": 10},
+            'arm_rot_r': {"weight": 10},
+            'elbow_flex_l': {"weight": 10},
+            'elbow_flex_r': {"weight": 10},
+            'pro_sup_l': {"weight": 10},
+            'pro_sup_r': {"weight": 10},
+            'mtp_angle_l':{"weight": 10},
+            'mtp_angle_r':{"weight": 20}},
         'coordinate_constraints': {
-            'pelvis_tx': {"env_bound": 0.1}},
+            'pelvis_ty': {"env_bound": 0.2},
+            'pelvis_tx': {"env_bound": 0.2},
+            'pelvis_tz': {"env_bound": 0.2}},
+            # 'hip_flexion_l': {"env_bound": 0.2},
+            # 'hip_adduction_l': {"env_bound": 0.2},
+            # 'hip_rotation_l': {"env_bound": 0.2},#was 1
+            #  'hip_flexion_r': {"env_bound": 0.2},
+            # 'hip_adduction_r': {"env_bound": 0.2},
+            # 'hip_rotation_r': {"env_bound": 0.2}, #was 1
+            # 'knee_angle_l': {"env_bound": 0.2},
+            # 'knee_angle_r': {"env_bound": 0.2},
+            # 'ankle_angle_l': {"env_bound": 0.2}, #was 10
+            # 'ankle_angle_r': {"env_bound": 0.2}},
+        'withReserveActuators': True,
+        'reserveActuatorCoordinates': {
+            'mtp_angle_l': 400, 'mtp_angle_r': 400},    
         'ignorePassiveFiberForce': True,
         'filter_Qs_toTrack': True,
-        'cutoff_freq_Qs': 12,
+        'cutoff_freq_Qs': 30, #Use 6 Hz for OpenCap
         'filter_Qds_toTrack': True,
-        'cutoff_freq_Qds': 12,
+        'cutoff_freq_Qds': 30,
         'filter_Qdds_toTrack': True,
-        'cutoff_freq_Qdds': 12,
+        'cutoff_freq_Qdds': 30,
         'splineQds': True,
         'meshDensity': 100,
-        'yCalcnToes': False}
+        'yCalcnToes': True}
+
     
     setups['running'] = {
         'ipopt_tolerance': 3,

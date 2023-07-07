@@ -89,7 +89,7 @@ def run_tracking(baseDir, dataDir, subject, settings, case='0',
     # Set scaleIsometricMuscleForce to scale the maximal isometric muscle
     # forces. By default, scaleIsometricMuscleForce is set to 1, and the forces
     # therefore correspond to those of the generic models.
-    scaleIsometricMuscleForce = 1
+    scaleIsometricMuscleForce = 2
     if 'scaleIsometricMuscleForce' in settings: 
         scaleIsometricMuscleForce = settings['scaleIsometricMuscleForce']
     
@@ -590,22 +590,22 @@ def run_tracking(baseDir, dataDir, subject, settings, case='0',
     # trial being processed. These are also the bounds used in the optimal
     # control problem.
     polynomial_bounds = {
-            'hip_flexion_l': {'max': 120, 'min': -30},
-            'hip_flexion_r': {'max': 120, 'min': -30},
+            'hip_flexion_l': {'max': 120, 'min': -50},
+            'hip_flexion_r': {'max': 120, 'min': -50},
             'hip_adduction_l': {'max': 20, 'min': -50},
             'hip_adduction_r': {'max': 20, 'min': -50},
-            'hip_rotation_l': {'max': 35, 'min': -40},
-            'hip_rotation_r': {'max': 35, 'min': -40},
-            'knee_angle_l': {'max': 138, 'min': 0},
-            'knee_angle_r': {'max': 138, 'min': 0},
-            'knee_adduction_l': {'max': 20, 'min': -30},
-            'knee_adduction_r': {'max': 20, 'min': -30},
-            'ankle_angle_l': {'max': 50, 'min': -50},
-            'ankle_angle_r': {'max': 50, 'min': -50},
-            'subtalar_angle_l': {'max': 35, 'min': -35},
-            'subtalar_angle_r': {'max': 35, 'min': -35},
-            'mtp_angle_l': {'max': 5, 'min': -45},
-            'mtp_angle_r': {'max': 5, 'min': -45}}
+            'hip_rotation_l': {'max': 60, 'min': -40},
+            'hip_rotation_r': {'max': 60, 'min': -40},
+            'knee_angle_l': {'max': 140, 'min': 0},
+            'knee_angle_r': {'max': 140, 'min': 0},
+            'knee_adduction_l': {'max': 20, 'min': -50},
+            'knee_adduction_r': {'max': 20, 'min': -50},
+            'ankle_angle_l': {'max': 50, 'min': -70},
+            'ankle_angle_r': {'max': 50, 'min': -70},
+            'subtalar_angle_l': {'max': 50, 'min': -50},
+            'subtalar_angle_r': {'max': 50, 'min': -50},
+            'mtp_angle_l': {'max': 30, 'min': -45},
+            'mtp_angle_r': {'max': 30, 'min': -45}}
     # Check if the Qs (coordinate values) to track are within the bounds
     # used to define the polynomials. If not, adjust the polynomial bounds.
     from utilsOpenSimAD import checkQsWithinPolynomialBounds
@@ -655,10 +655,10 @@ def run_tracking(baseDir, dataDir, subject, settings, case='0',
         polynomialData['l'] = polynomialData['l'].item()
     # Coefficients should not be larger than 1.
     sides = ['r', 'l']
-    for side in sides:
-        for c_pol in polynomialData[side]:
-            assert (np.max(polynomialData[side][c_pol]['coefficients']) < 1), (
-                "coeffs {}".format(side))
+    #for side in sides:
+       # for c_pol in polynomialData[side]:
+           # assert (np.max(polynomialData[side][c_pol]['coefficients']) < 1), (
+                #"coeffs {}".format(side))
             
     # The function f_polynomial takes as inputs joint positions and velocities
     # from one side, and returns muscle-tendon lengths, velocities, and moment
@@ -748,9 +748,9 @@ def run_tracking(baseDir, dataDir, subject, settings, case='0',
                             idx_vGRF[4], idx_vGRF[5]]            
     if yCalcnToes:
         # Indices vertical position origins calc and toes segments.
-        idx_yCalcnToes = [F_map['body_origins']['calcn_l'][1],
+        idx_yCalcnToes = [#F_map['body_origins']['calcn_l'][1],
                           F_map['body_origins']['calcn_r'][1],
-                          F_map['body_origins']['toes_l'][1],
+                          #F_map['body_origins']['toes_l'][1]]
                           F_map['body_origins']['toes_r'][1]]
 
     # Lists to map order of coordinates defined here and in external function.

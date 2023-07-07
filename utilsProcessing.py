@@ -496,13 +496,16 @@ def generateModelWithContacts(
         "s3_r": {"radius": 0.032, "location": np.array([0.13300117060705099,     -0.01,  0.051636247344956601]), "orientation": np.array([0, 0, 0]), "socket_frame": "calcn_r"},
         "s4_r": {"radius": 0.032, "location": np.array([0.066234666199163503,    -0.01,  0.026364160674169801]), "orientation": np.array([0, 0, 0]), "socket_frame": "calcn_r"},
         "s5_r": {"radius": 0.032, "location": np.array([0.059999999999999998,    -0.01,  -0.018760308461917698]), "orientation": np.array([0, 0, 0]), "socket_frame": "toes_r" },
+        #"s6_r": {"radius": 0.032, "location": np.array([0.030841, -0.01, -0.0276085]), "orientation": np.array([0, 0, 0]), "socket_frame": "toes_r" },
         "s6_r": {"radius": 0.032, "location": np.array([0.044999999999999998,    -0.01,  0.061856956754965199]), "orientation": np.array([0, 0, 0]), "socket_frame": "toes_r" },
+        #"s8_r": {"radius": 0.032, "location": np.array([0.07, -0.01, -0.026]), "orientation": np.array([0, 0, 0]), "socket_frame": "calcn_r" },
         "s1_l": {"radius": 0.032, "location": np.array([0.0019011578840796601,   -0.01,  0.00382630379623308]), "orientation": np.array([0, 0, 0]), "socket_frame": "calcn_l"},
         "s2_l": {"radius": 0.032, "location": np.array([0.14838639994206301,     -0.01,  0.028713422052654002]), "orientation": np.array([0, 0, 0]), "socket_frame": "calcn_l"},
         "s3_l": {"radius": 0.032, "location": np.array([0.13300117060705099,     -0.01,  -0.051636247344956601]), "orientation": np.array([0, 0, 0]), "socket_frame": "calcn_l"},
         "s4_l": {"radius": 0.032, "location": np.array([0.066234666199163503,    -0.01,  -0.026364160674169801]), "orientation": np.array([0, 0, 0]), "socket_frame": "calcn_l"},
         "s5_l": {"radius": 0.032, "location": np.array([0.059999999999999998,    -0.01,  0.018760308461917698]), "orientation": np.array([0, 0, 0]), "socket_frame": "toes_l" },
-        "s6_l": {"radius": 0.032, "location": np.array([0.044999999999999998,    -0.01,  -0.061856956754965199]), "orientation": np.array([0, 0, 0]), "socket_frame": "toes_l" }}      
+        "s6_l": {"radius": 0.032, "location": np.array([0.044999999999999998,    -0.01,  -0.061856956754965199]), "orientation": np.array([0, 0, 0]), "socket_frame": "toes_l" }}     
+        #"s8_l": {"radius": 0.032, "location": np.array([0.07, -0.01, 0.026]), "orientation": np.array([0, 0, 0]), "socket_frame": "calcn_l" }}
     reference_scale_factors = {"calcn_r": np.array([0.91392399999999996, 0.91392399999999996, 0.91392399999999996]),
                                "toes_r":  np.array([0.91392399999999996, 0.91392399999999996, 0.91392399999999996]),
                                "calcn_l": np.array([0.91392399999999996, 0.91392399999999996, 0.91392399999999996]),
@@ -512,13 +515,25 @@ def generateModelWithContacts(
     #Flat mound for Pitcher01
     #reference_contact_half_space = {"name": "floor", "location": np.array([0.2, 0.27, -0.55]),"orientation": np.array([0, 1, ((-np.pi/2))]), "frame": "ground"}
     #Flat ground
-    reference_contact_half_space = {"name": "floor", "location": np.array([0, 0, 0]),"orientation": np.array([0, 0, ((-np.pi/2))]), "frame": "ground"}
-    stiffness = 1000000
+    #reference_contact_half_space = {"name": "floor", "location": np.array([0, 0, 0]),"orientation": np.array([0, 0, ((-np.pi/2))]), "frame": "ground"}
+    #Flat ground MP 
+    #reference_contact_half_space = {"name": "floor", "location": np.array([0, 0.06, 0]),"orientation": np.array([0, 0, ((-np.pi/2))]), "frame": "ground"}
+    #Slanted mounded aligned to motion after the pitcher sinks down with kinematics rotated properly
+    #reference_contact_half_space = {"name": "floor", "location": np.array([0.5, 0.19, 0.0]),"orientation": np.array([0, 0, ((-np.pi/2)-0.07296482044)]), "frame": "ground"}
+    #Slanted mounded aligned to mocap data
+    reference_contact_half_space = {"name": "floor", "location": np.array([0.65, 0.0, 0.0]),"orientation": np.array([0, 0, ((-np.pi/2)-0.07296482044)]), "frame": "ground"}
+    
+    # reference_contact_groundspheres = {
+    # "gs1": {"radius": 0.032, "location": np.array([0,0,0]), "orientation": np.array([0, 0, 0]), "frame": "ground"},
+    # "gs2": {"radius": 0.032, "location": np.array([0,0,0]), "orientation": np.array([0, 0, 0]), "frame": "ground"},
+    # "gs3": {"radius": 0.032, "location": np.array([0,0,0]), "orientation": np.array([0, 0, 0]), "frame": "ground"}}     
+
+    stiffness = 1000000 #1000000
     dissipation = 2.0
-    static_friction = 0.8
-    dynamic_friction = 0.8
-    viscous_friction = 0.5
-    transition_velocity = 0.2
+    static_friction = 0.8 #Was 0.8, 1.2
+    dynamic_friction = 0.8 #Was 0.8 1.2
+    viscous_friction = 0.5 # 0.3
+    transition_velocity = 0.2 #Was 0.2, tried 0.1 no improvement, 0.05 did nothing for Pitcher03, Pitcher01 did not converge with 0.8 mus
     
     # Add contact spheres and SmoothSphereHalfSpaceForces.
     opensim.Logger.setLevelString('error')
@@ -536,6 +551,32 @@ def generateModelWithContacts(
         contact_half_space_frame, reference_contact_half_space["name"])
     contactHalfSpace.connectSocket_frame(contact_half_space_frame)
     model.addContactGeometry(contactHalfSpace)
+    
+    # # ContactSpheres and SmoothSphereHalfSpaceForces.
+    # for ref_contact_gsphere in reference_contact_groundspheres:    
+    #     # ContactSpheres.
+    #     body = reference_contact_groundspheres[ref_contact_gsphere]["location"]
+    #     c_contactSphere = opensim.ContactSphere(
+    #         reference_contact_groundspheres[ref_contact_gsphere]["radius"],
+    #         opensim.Vec3(ref_contact_gsphere["location"]),
+    #         opensim.Vec3(ref_contact_gsphere["orientation"]),
+    #         contact_half_space_frame, reference_contact_half_space["name"])
+    #     c_contactSphere.connectSocket_frame(contact_half_space_frame)
+    #     model.addContactGeometry(c_contactSphere)
+        
+    #     # SmoothSphereHalfSpaceForces.
+    #     SmoothSphereHalfSpaceForce = opensim.SmoothSphereHalfSpaceForce(
+    #         "SmoothSphereHalfSpaceForce_" + ref_contact_gsphere, 
+    #         c_contactSphere, contactHalfSpace)
+    #     SmoothSphereHalfSpaceForce.set_stiffness(stiffness)
+    #     SmoothSphereHalfSpaceForce.set_dissipation(dissipation)
+    #     SmoothSphereHalfSpaceForce.set_static_friction(static_friction)
+    #     SmoothSphereHalfSpaceForce.set_dynamic_friction(dynamic_friction)
+    #     SmoothSphereHalfSpaceForce.set_viscous_friction(viscous_friction)
+    #     SmoothSphereHalfSpaceForce.set_transition_velocity(transition_velocity)        
+    #     SmoothSphereHalfSpaceForce.connectSocket_half_space(contactHalfSpace)
+    #     SmoothSphereHalfSpaceForce.connectSocket_sphere(c_contactSphere)
+    #     model.addForce(SmoothSphereHalfSpaceForce)
     
     # ContactSpheres and SmoothSphereHalfSpaceForces.
     for ref_contact_sphere in reference_contact_spheres:    

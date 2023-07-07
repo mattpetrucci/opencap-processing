@@ -126,13 +126,17 @@ Please contact us for any questions: https://www.opencap.ai/#contact
 # Select which example you would like to run.
 session_type = 'overground' # Options are 'overground' and 'treadmill'.
 #session_id = "4d5c3eb1-1a59-4ea1-9178-d3634610561c"
-session_id = "OpenCapData_30eb2791-dd65-4f6b-af62-b793ee2aec3d"
+#session_id = "TestingPitching"
 #session_id = "Pitcher01_2Cam_HRNet"
+session_id = "Pitcher01_Mocap"
+#session_id = "MP"
 case = '0' # Change this to compare across settings.
 # Options are 'squat', 'STS', and 'jump'.
 if session_type == 'overground': 
     #trial_name = 'Rec2_LSTM' #For SFG
-    trial_name = 'Pitching' 
+    #trial_name = 'Pitching' 
+    trial_name = 'Fastball RH Sports 6'
+    #trial_name = 'fastball7'
     if trial_name == 'squat': # Squat
         motion_type = 'squats'
         repetition = 1
@@ -143,12 +147,16 @@ if session_type == 'overground':
         motion_type = 'jumping'
         time_window = [1.3, 2.2]
     #elif trial_name == 'Rec2_LSTM': # For SFG 
-    elif trial_name == 'Pitching': # Jump 
+    elif trial_name == 'Fastball RH Sports 6': #For SFG MoCap
+    #elif trial_name == 'Pitching': # Jump 
+    #elif trial_name == 'fastball7': # Jump 
         motion_type = 'pitching'
         #time_window = [1.7, 2.5] #Flat Ground
-        #time_window = [2.6, 3.1] #Drive on angle that worked
-        #time_window = [2.6, 3.1] #
-        time_window = [2.6, 4.6] #
+        time_window = [2.4, 3.1] #Drive on angle that worked SF Pitcher01
+        #time_window = [2.5, 3.1] #Drive on angle that worked SF Pitcher03
+        #time_window = [2.6, 3.1] # SU pitch
+        #time_window = [3.1, 4.4] # SU pitch
+        #time_window = [4.4, 5.5] # MP pitch
 # Options are 'walk_1_25ms', 'run_2_5ms', and 'run_4ms'.
 elif session_type == 'treadmill': 
     trial_name = 'walk_1_25ms'
@@ -194,4 +202,4 @@ run_tracking(baseDir, dataFolder, session_id, settings, case=case,
 
 # %% Plots.
 # To compare different cases, add to the cases list, eg cases=['0','1'].
-plotResultsDC(dataFolder, session_id, trial_name, settings, cases=[case])
+plotResultsDC(dataFolder, session_id, trial_name, settings, cases=[case],mainPlots = False)
