@@ -137,7 +137,7 @@ if session_type == 'overground':
     #trial_name = 'Pitching' 
     trial_name = 'Fastball RH Sports 6'
     #trial_name = 'fastball7'
-    trial_name = 'STS'
+    #trial_name = 'STS'
     if trial_name == 'squat': # Squat
         motion_type = 'squats'
         repetition = 1
@@ -151,9 +151,9 @@ if session_type == 'overground':
     elif trial_name == 'Fastball RH Sports 6': #For SFG MoCap
     #elif trial_name == 'Pitching': # Jump 
     #elif trial_name == 'fastball7': # Jump 
-        motion_type = 'pitching'
+        motion_type = 'pitching_torque_driven'
         #time_window = [1.7, 2.5] #Flat Ground
-        time_window = [2.4, 3.1] #Drive on angle that worked SF Pitcher01
+        time_window = [2.4, 2.8] #Drive on angle that worked SF Pitcher01
         #time_window = [2.5, 3.1] #Drive on angle that worked SF Pitcher03
         #time_window = [2.6, 3.1] # SU pitch
         #time_window = [3.1, 4.4] # SU pitch

@@ -58,7 +58,7 @@ def run_tracking(baseDir, dataDir, subject, settings, case='0',
     
     # Model info.
     # Model name.
-    OpenSimModel = 'LaiUhlrich2022'
+    OpenSimModel = 'LaiArnoldModified2017_poly_withArms_weldHand_scaled'
     if 'OpenSimModel' in settings:  
         OpenSimModel = settings['OpenSimModel']
     model_full_name = OpenSimModel + "_scaled_adjusted"
@@ -93,7 +93,7 @@ def run_tracking(baseDir, dataDir, subject, settings, case='0',
     # Set scaleIsometricMuscleForce to scale the maximal isometric muscle
     # forces. By default, scaleIsometricMuscleForce is set to 1, and the forces
     # therefore correspond to those of the generic models.
-    scaleIsometricMuscleForce = 2
+    scaleIsometricMuscleForce = 1
     if 'scaleIsometricMuscleForce' in settings: 
         scaleIsometricMuscleForce = settings['scaleIsometricMuscleForce']
     
