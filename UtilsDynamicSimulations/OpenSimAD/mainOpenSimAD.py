@@ -58,7 +58,7 @@ def run_tracking(baseDir, dataDir, subject, settings, case='0',
     
     # Model info.
     # Model name.
-    OpenSimModel = 'LaiArnoldModified2017_poly_withArms_weldHand_scaled'
+    OpenSimModel = 'LaiUhlrich2022'
     if 'OpenSimModel' in settings:  
         OpenSimModel = settings['OpenSimModel']
     model_full_name = OpenSimModel + "_scaled_adjusted"
@@ -109,8 +109,10 @@ def run_tracking(baseDir, dataDir, subject, settings, case='0',
         withReserveActuators = settings['withReserveActuators']
     if withReserveActuators:
         reserveActuatorCoordinates = settings['reserveActuatorCoordinates']
-        weights['reserveActuatorTerm'] = (
-            settings['weights']['reserveActuatorTerm'])
+        weights['reserveActuatorTerm'] = 0.001
+        if 'reserveActuatorTerm' in settings['weights']:
+            weights['reserveActuatorTerm'] = (
+                settings['weights']['reserveActuatorTerm'])
     
     # Set ignorePassiveFiberForce to True to ignore passive muscle forces.
     ignorePassiveFiberForce = False
@@ -341,7 +343,7 @@ def run_tracking(baseDir, dataDir, subject, settings, case='0',
     with open(pathSettings, 'w') as file:
         yaml.dump(settings, file)
         
-    print('Processing {}'.format(trialName))
+    print('Processing {} - Case {}'.format(trialName, case))
     
     # %% Muscles.
     # This section specifies the muscles and some of their parameters. This is
@@ -512,46 +514,47 @@ def run_tracking(baseDir, dataDir, subject, settings, case='0',
     # Specify which states should have periodic constraints.
     # See settingsOpenSimAD for example.
     if periodicConstraints:        
-        if 'Qs' in periodicConstraints:
-            if 'lowerLimbJoints' in periodicConstraints['Qs']:
+        if 'coordinateValues' in periodicConstraints:
+            if 'lowerLimbJoints' in periodicConstraints['coordinateValues']:
                 idxPeriodicQs = getIndices(joints, lowerLimbJoints)
             else:
                 idxPeriodicQs = []
-                for joint in periodicConstraints['Qs']:
+                for joint in periodicConstraints['coordinateValues']:
                     idxPeriodicQs.append(joints.index(joint))
-        if 'Qds' in periodicConstraints:
-            if 'lowerLimbJoints' in periodicConstraints['Qds']:
+        if 'coordinateSpeeds' in periodicConstraints:
+            if 'lowerLimbJoints' in periodicConstraints['coordinateSpeeds']:
                 idxPeriodicQds = getIndices(joints, lowerLimbJoints)
             else:
                 idxPeriodicQds = []
-                for joint in periodicConstraints['Qds']:
+                for joint in periodicConstraints['coordinateSpeeds']:
                     idxPeriodicQds.append(joints.index(joint))
-        if 'muscles' in periodicConstraints:
-            if torque_driven_model:
-                if 'all' in periodicConstraints['muscles']:
-                    idxPeriodicMuscles = getIndices(muscleDrivenJoints, 
-                                                        muscleDrivenJoints)
-                else:
-                    idxPeriodicMuscles = []
-                    for c_m in periodicConstraints['muscles']:
-                        idxPeriodicMuscles.append(muscleDrivenJoints.index(c_m))
+
+        if 'muscleActivationsForces' in periodicConstraints:
+            if 'all' in periodicConstraints['muscleActivationsForces']:
+                idxPeriodicMuscles = getIndices(bothSidesMuscles, 
+                                                bothSidesMuscles)
             else:
-                if 'all' in periodicConstraints['muscles']:
-                    idxPeriodicMuscles = getIndices(bothSidesMuscles, 
-                                                        bothSidesMuscles)
-                else:
-                    idxPeriodicMuscles = []
-                    for c_m in periodicConstraints['Qds']:
-                        idxPeriodicMuscles.append(bothSidesMuscles.index(c_m))
-        if 'lumbar' in periodicConstraints:
-            if 'all' in periodicConstraints['lumbar']:
+                idxPeriodicMuscles = []
+                for c_m in periodicConstraints['muscleActivationsForces']:
+                    idxPeriodicMuscles.append(bothSidesMuscles.index(c_m))
+        if 'lumbarJointActivations' in periodicConstraints:
+            if 'all' in periodicConstraints['lumbarJointActivations']:
                 idxPeriodicLumbar = getIndices(lumbarJoints, 
-                                                    lumbarJoints)
+                                                lumbarJoints)
             else:
                 idxPeriodicLumbar = []
-                for c_m in periodicConstraints['lumbar']:
+                for c_m in periodicConstraints['lumbarJointActivations']:
                     idxPeriodicLumbar.append(lumbarJoints.index(c_m))
-        
+
+        if ('lowerLimbJointActivations' in periodicConstraints 
+            and torque_driven_model):
+            if 'all' in periodicConstraints['lowerLimbJointActivations']:
+                    idxPeriodicMuscles = getIndices(muscleDrivenJoints, 
+                                                    muscleDrivenJoints)
+            else:
+                idxPeriodicMuscles = []
+                for c_m in periodicConstraints['lowerLimbJointActivations']:
+                    idxPeriodicMuscles.append(muscleDrivenJoints.index(c_m))
     
         
     # %% Coordinate actuator activation dynamics.
@@ -634,22 +637,22 @@ def run_tracking(baseDir, dataDir, subject, settings, case='0',
     # trial being processed. These are also the bounds used in the optimal
     # control problem.
     polynomial_bounds = {
-            'hip_flexion_l': {'max': 120, 'min': -50},
-            'hip_flexion_r': {'max': 120, 'min': -50},
+            'hip_flexion_l': {'max': 120, 'min': -30},
+            'hip_flexion_r': {'max': 120, 'min': -30},
             'hip_adduction_l': {'max': 20, 'min': -50},
             'hip_adduction_r': {'max': 20, 'min': -50},
-            'hip_rotation_l': {'max': 60, 'min': -40},
-            'hip_rotation_r': {'max': 60, 'min': -40},
-            'knee_angle_l': {'max': 140, 'min': 0},
-            'knee_angle_r': {'max': 140, 'min': 0},
-            'knee_adduction_l': {'max': 20, 'min': -50},
-            'knee_adduction_r': {'max': 20, 'min': -50},
-            'ankle_angle_l': {'max': 50, 'min': -70},
-            'ankle_angle_r': {'max': 50, 'min': -70},
-            'subtalar_angle_l': {'max': 50, 'min': -50},
-            'subtalar_angle_r': {'max': 50, 'min': -50},
-            'mtp_angle_l': {'max': 30, 'min': -45},
-            'mtp_angle_r': {'max': 30, 'min': -45}}
+            'hip_rotation_l': {'max': 35, 'min': -40},
+            'hip_rotation_r': {'max': 35, 'min': -40},
+            'knee_angle_l': {'max': 138, 'min': 0},
+            'knee_angle_r': {'max': 138, 'min': 0},
+            'knee_adduction_l': {'max': 20, 'min': -30},
+            'knee_adduction_r': {'max': 20, 'min': -30},
+            'ankle_angle_l': {'max': 50, 'min': -50},
+            'ankle_angle_r': {'max': 50, 'min': -50},
+            'subtalar_angle_l': {'max': 35, 'min': -35},
+            'subtalar_angle_r': {'max': 35, 'min': -35},
+            'mtp_angle_l': {'max': 5, 'min': -45},
+            'mtp_angle_r': {'max': 5, 'min': -45}}
     # Check if the Qs (coordinate values) to track are within the bounds
     # used to define the polynomials. If not, adjust the polynomial bounds.
     from utilsOpenSimAD import checkQsWithinPolynomialBounds
@@ -677,42 +680,6 @@ def run_tracking(baseDir, dataDir, subject, settings, case='0',
         leftPolynomialJoints.remove('mtp_angle_l')
         rightPolynomialJoints.remove('mtp_angle_r')    
     
-    # Load polynomials if computed already, compute otherwise.    
-    loadPolynomialData = True
-    if (not os.path.exists(os.path.join(
-            pathModelFolder, model_full_name + '_polynomial_r_{}.npy'.format(type_bounds_polynomials)))
-            or not os.path.exists(os.path.join(
-            pathModelFolder, model_full_name + '_polynomial_l_{}.npy'.format(type_bounds_polynomials)))):
-        loadPolynomialData = False        
-    from muscleDataOpenSimAD import getPolynomialData
-    polynomialData = {}
-    polynomialData['r'] = getPolynomialData(
-        loadPolynomialData, pathModelFolder, model_full_name, pathDummyMotion, 
-        rightPolynomialJoints, rightSideMuscles, 
-        type_bounds_polynomials=type_bounds_polynomials, side='r')
-    polynomialData['l'] = getPolynomialData(
-        loadPolynomialData, pathModelFolder, model_full_name, pathDummyMotion, 
-        leftPolynomialJoints, leftSideMuscles, 
-        type_bounds_polynomials=type_bounds_polynomials, side='l')     
-    if loadPolynomialData:
-        polynomialData['r'] = polynomialData['r'].item()
-        polynomialData['l'] = polynomialData['l'].item()
-    # Coefficients should not be larger than 1.
-    sides = ['r', 'l']
-    #for side in sides:
-       # for c_pol in polynomialData[side]:
-           # assert (np.max(polynomialData[side][c_pol]['coefficients']) < 1), (
-                #"coeffs {}".format(side))
-            
-    # The function f_polynomial takes as inputs joint positions and velocities
-    # from one side, and returns muscle-tendon lengths, velocities, and moment
-    # arms for the muscle of that side.
-    nPolynomials = len(leftPolynomialJoints)
-    f_polynomial = {}
-    f_polynomial['r'] = polynomialApproximation(
-        rightSideMuscles, polynomialData['r'], nPolynomials)
-    f_polynomial['l'] = polynomialApproximation(
-        leftSideMuscles, polynomialData['l'], nPolynomials)
     if not torque_driven_model:
         # Load polynomials if computed already, compute otherwise.    
         loadPolynomialData = True
@@ -769,7 +736,8 @@ def run_tracking(baseDir, dataDir, subject, settings, case='0',
             from polynomialsOpenSimAD import testPolynomials
             path_data4PolynomialFitting = os.path.join(
                 pathModelFolder, 
-                'data4PolynomialFitting_{}.npy'.format(model_full_name))
+                'data4PolynomialFitting_{}_{}.npy'.format(
+                    model_full_name, type_bounds_polynomials))
             data4PolynomialFitting = np.load(path_data4PolynomialFitting, 
                                              allow_pickle=True).item()            
             testPolynomials(
@@ -843,9 +811,9 @@ def run_tracking(baseDir, dataDir, subject, settings, case='0',
             idx_vGRF_front[side] = [F_map['GRFs'][contactSpheres[side][i]][1] for i in idx_front_spheres]        
     if yCalcnToes:
         # Indices vertical position origins calc and toes segments.
-        idx_yCalcnToes = [#F_map['body_origins']['calcn_l'][1],
+        idx_yCalcnToes = [F_map['body_origins']['calcn_l'][1],
                           F_map['body_origins']['calcn_r'][1],
-                          #F_map['body_origins']['toes_l'][1]]
+                          F_map['body_origins']['toes_l'][1],
                           F_map['body_origins']['toes_r'][1]]
 
     # Lists to map order of coordinates defined here and in external function.
@@ -1150,39 +1118,39 @@ def run_tracking(baseDir, dataDir, subject, settings, case='0',
             aCoord = opti.variable(nMuscleDrivenJoints, N+1)
             opti.subject_to(opti.bounded(lw['CoordAk'], ca.vec(aCoord), uw['CoordAk']))
             opti.set_initial(aCoord, w0['CoordA'].to_numpy().T)
-            assert np.alltrue(lw['CoordAk'] <= ca.vec(w0['CoordA'].to_numpy().T).full()), "Issue with lower bound coordinate activations"
-            assert np.alltrue(uw['CoordAk'] >= ca.vec(w0['CoordA'].to_numpy().T).full()), "Issue with upper bound coordinate activations"
+            assert np.all(lw['CoordAk'] <= ca.vec(w0['CoordA'].to_numpy().T).full()), "Issue with lower bound coordinate activations"
+            assert np.all(uw['CoordAk'] >= ca.vec(w0['CoordA'].to_numpy().T).full()), "Issue with upper bound coordinate activations"
             # Coordinate activation at collocation points.
             aCoord_col = opti.variable(nMuscleDrivenJoints, d*N)
             opti.subject_to(opti.bounded(lw['CoordAj'], ca.vec(aCoord_col), uw['CoordAj']))
             opti.set_initial(aCoord_col, w0['CoordAj'].to_numpy().T)
-            assert np.alltrue(lw['CoordAj'] <= ca.vec(w0['CoordAj'].to_numpy().T).full()), "Issue with lower bound coordinate activations (collocation points)"
-            assert np.alltrue(uw['CoordAj'] >= ca.vec(w0['CoordAj'].to_numpy().T).full()), "Issue with upper bound coordinate activations (collocation points)"
+            assert np.all(lw['CoordAj'] <= ca.vec(w0['CoordAj'].to_numpy().T).full()), "Issue with lower bound coordinate activations (collocation points)"
+            assert np.all(uw['CoordAj'] >= ca.vec(w0['CoordAj'].to_numpy().T).full()), "Issue with upper bound coordinate activations (collocation points)"
         else:
             # Muscle activation at mesh points.
             a = opti.variable(nMuscles, N+1)
             opti.subject_to(opti.bounded(lw['Ak'], ca.vec(a), uw['Ak']))
             opti.set_initial(a, w0['A'].to_numpy().T)
-            assert np.alltrue(lw['Ak'] <= ca.vec(w0['A'].to_numpy().T).full()), "Issue with lower bound muscle activations"
-            assert np.alltrue(uw['Ak'] >= ca.vec(w0['A'].to_numpy().T).full()), "Issue with upper bound muscle activations"
+            assert np.all(lw['Ak'] <= ca.vec(w0['A'].to_numpy().T).full()), "Issue with lower bound muscle activations"
+            assert np.all(uw['Ak'] >= ca.vec(w0['A'].to_numpy().T).full()), "Issue with upper bound muscle activations"
             # Muscle activation at collocation points.
             a_col = opti.variable(nMuscles, d*N)
             opti.subject_to(opti.bounded(lw['Aj'], ca.vec(a_col), uw['Aj']))
             opti.set_initial(a_col, w0['Aj'].to_numpy().T)
-            assert np.alltrue(lw['Aj'] <= ca.vec(w0['Aj'].to_numpy().T).full()), "Issue with lower bound muscle activations (collocation points)"
-            assert np.alltrue(uw['Aj'] >= ca.vec(w0['Aj'].to_numpy().T).full()), "Issue with upper bound muscle activations (collocation points)"
+            assert np.all(lw['Aj'] <= ca.vec(w0['Aj'].to_numpy().T).full()), "Issue with lower bound muscle activations (collocation points)"
+            assert np.all(uw['Aj'] >= ca.vec(w0['Aj'].to_numpy().T).full()), "Issue with upper bound muscle activations (collocation points)"
             # Muscle force at mesh points.
             nF = opti.variable(nMuscles, N+1)
             opti.subject_to(opti.bounded(lw['Fk'], ca.vec(nF), uw['Fk']))
             opti.set_initial(nF, w0['F'].to_numpy().T)
-            assert np.alltrue(lw['Fk'] <= ca.vec(w0['F'].to_numpy().T).full()), "Issue with lower bound muscle forces"
-            assert np.alltrue(uw['Fk'] >= ca.vec(w0['F'].to_numpy().T).full()), "Issue with upper bound muscle forces"
+            assert np.all(lw['Fk'] <= ca.vec(w0['F'].to_numpy().T).full()), "Issue with lower bound muscle forces"
+            assert np.all(uw['Fk'] >= ca.vec(w0['F'].to_numpy().T).full()), "Issue with upper bound muscle forces"
             # Muscle force at collocation points.
             nF_col = opti.variable(nMuscles, d*N)
             opti.subject_to(opti.bounded(lw['Fj'], ca.vec(nF_col), uw['Fj']))
             opti.set_initial(nF_col, w0['Fj'].to_numpy().T)
-            assert np.alltrue(lw['Fj'] <= ca.vec(w0['Fj'].to_numpy().T).full()), "Issue with lower bound muscle forces (collocation points)"
-            assert np.alltrue(uw['Fj'] >= ca.vec(w0['Fj'].to_numpy().T).full()), "Issue with upper bound muscle forces (collocation points)"
+            assert np.all(lw['Fj'] <= ca.vec(w0['Fj'].to_numpy().T).full()), "Issue with lower bound muscle forces (collocation points)"
+            assert np.all(uw['Fj'] >= ca.vec(w0['Fj'].to_numpy().T).full()), "Issue with upper bound muscle forces (collocation points)"
         # Joint position at mesh points.
         Qs = opti.variable(nJoints, N+1)
         opti.subject_to(opti.bounded(lw['Qsk'], ca.vec(Qs), uw['Qsk']))
@@ -1192,15 +1160,15 @@ def run_tracking(baseDir, dataDir, subject, settings, case='0',
                 (w0['Qs'].to_numpy().T.shape[0], 1))), axis=1)
         opti.set_initial(Qs, guessQsEnd)
         # Small margin to account for filtering.
-        assert np.alltrue(lw['Qsk'] - 2 * np.pi/180 <= ca.vec(guessQsEnd).full()), "Issue with lower bound coordinate values"
-        assert np.alltrue(uw['Qsk'] + 2 * np.pi/180 >= ca.vec(guessQsEnd).full()), "Issue with upper bound coordinate values"
+        assert np.all(lw['Qsk'] - np.pi/180 <= ca.vec(guessQsEnd).full()), "Issue with lower bound coordinate values"
+        assert np.all(uw['Qsk'] + np.pi/180 >= ca.vec(guessQsEnd).full()), "Issue with upper bound coordinate values"
         # Joint position at collocation points.
         Qs_col = opti.variable(nJoints, d*N)
         opti.subject_to(opti.bounded(lw['Qsj'], ca.vec(Qs_col), uw['Qsj']))
         opti.set_initial(Qs_col, w0['Qsj'].to_numpy().T)
         # Small margin to account for filtering.
-        assert np.alltrue(lw['Qsj'] - 2 * np.pi/180 <= ca.vec(w0['Qsj'].to_numpy().T).full()), "Issue with lower bound coordinate values (collocation points)"
-        assert np.alltrue(uw['Qsj'] + 2 * np.pi/180 >= ca.vec(w0['Qsj'].to_numpy().T).full()), "Issue with upper bound coordinate values (collocation points)"
+        assert np.all(lw['Qsj'] - np.pi/180 <= ca.vec(w0['Qsj'].to_numpy().T).full()), "Issue with lower bound coordinate values (collocation points)"
+        assert np.all(uw['Qsj'] + np.pi/180 >= ca.vec(w0['Qsj'].to_numpy().T).full()), "Issue with upper bound coordinate values (collocation points)"
         # Joint velocity at mesh points.
         Qds = opti.variable(nJoints, N+1)
         opti.subject_to(opti.bounded(lw['Qdsk'], ca.vec(Qds), uw['Qdsk']))
@@ -1209,82 +1177,82 @@ def run_tracking(baseDir, dataDir, subject, settings, case='0',
                 w0['Qds'].to_numpy().T[:,-1], 
                 (w0['Qds'].to_numpy().T.shape[0], 1))), axis=1)
         opti.set_initial(Qds, guessQdsEnd)
-        assert np.alltrue(lw['Qdsk'] <= ca.vec(guessQdsEnd).full()), "Issue with lower bound coordinate speeds"
-        assert np.alltrue(uw['Qdsk'] >= ca.vec(guessQdsEnd).full()), "Issue with upper bound coordinate speeds"        
+        assert np.all(lw['Qdsk'] <= ca.vec(guessQdsEnd).full()), "Issue with lower bound coordinate speeds"
+        assert np.all(uw['Qdsk'] >= ca.vec(guessQdsEnd).full()), "Issue with upper bound coordinate speeds"        
         # Joint velocity at collocation points.
         Qds_col = opti.variable(nJoints, d*N)
         opti.subject_to(opti.bounded(lw['Qdsj'], ca.vec(Qds_col), uw['Qdsj']))
         opti.set_initial(Qds_col, w0['Qdsj'].to_numpy().T)
-        assert np.alltrue(lw['Qdsj'] <= ca.vec(w0['Qdsj'].to_numpy().T).full()), "Issue with lower bound coordinate speeds (collocation points)"
-        assert np.alltrue(uw['Qdsj'] >= ca.vec(w0['Qdsj'].to_numpy().T).full()), "Issue with upper bound coordinate speeds (collocation points)"
+        assert np.all(lw['Qdsj'] <= ca.vec(w0['Qdsj'].to_numpy().T).full()), "Issue with lower bound coordinate speeds (collocation points)"
+        assert np.all(uw['Qdsj'] >= ca.vec(w0['Qdsj'].to_numpy().T).full()), "Issue with upper bound coordinate speeds (collocation points)"
         if withArms:
             # Arm activation at mesh points.
             aArm = opti.variable(nArmJoints, N+1)
             opti.subject_to(opti.bounded(lw['ArmAk'], ca.vec(aArm), uw['ArmAk']))
             opti.set_initial(aArm, w0['ArmA'].to_numpy().T)
-            assert np.alltrue(lw['ArmAk'] <= ca.vec(w0['ArmA'].to_numpy().T).full()), "Issue with lower bound arm activations"
-            assert np.alltrue(uw['ArmAk'] >= ca.vec(w0['ArmA'].to_numpy().T).full()), "Issue with upper bound arm activations"
+            assert np.all(lw['ArmAk'] <= ca.vec(w0['ArmA'].to_numpy().T).full()), "Issue with lower bound arm activations"
+            assert np.all(uw['ArmAk'] >= ca.vec(w0['ArmA'].to_numpy().T).full()), "Issue with upper bound arm activations"
             # Arm activation at collocation points.
             aArm_col = opti.variable(nArmJoints, d*N)
             opti.subject_to(opti.bounded(lw['ArmAj'], ca.vec(aArm_col), uw['ArmAj']))
             opti.set_initial(aArm_col, w0['ArmAj'].to_numpy().T)
-            assert np.alltrue(lw['ArmAj'] <= ca.vec(w0['ArmAj'].to_numpy().T).full()), "Issue with lower bound arm activations (collocation points)"
-            assert np.alltrue(uw['ArmAj'] >= ca.vec(w0['ArmAj'].to_numpy().T).full()), "Issue with upper bound arm activations (collocation points)"
+            assert np.all(lw['ArmAj'] <= ca.vec(w0['ArmAj'].to_numpy().T).full()), "Issue with lower bound arm activations (collocation points)"
+            assert np.all(uw['ArmAj'] >= ca.vec(w0['ArmAj'].to_numpy().T).full()), "Issue with upper bound arm activations (collocation points)"
         if withLumbarCoordinateActuators:
             # Lumbar activation at mesh points.
             aLumbar = opti.variable(nLumbarJoints, N+1)
             opti.subject_to(opti.bounded(lw['LumbarAk'], ca.vec(aLumbar), uw['LumbarAk']))
             opti.set_initial(aLumbar, w0['LumbarA'].to_numpy().T)
-            assert np.alltrue(lw['LumbarAk'] <= ca.vec(w0['LumbarA'].to_numpy().T).full()), "Issue with lower bound lumbar activations"
-            assert np.alltrue(uw['LumbarAk'] >= ca.vec(w0['LumbarA'].to_numpy().T).full()), "Issue with upper bound lumbar activations"
+            assert np.all(lw['LumbarAk'] <= ca.vec(w0['LumbarA'].to_numpy().T).full()), "Issue with lower bound lumbar activations"
+            assert np.all(uw['LumbarAk'] >= ca.vec(w0['LumbarA'].to_numpy().T).full()), "Issue with upper bound lumbar activations"
             # Lumbar activation at collocation points.
             aLumbar_col = opti.variable(nLumbarJoints, d*N)
             opti.subject_to(opti.bounded(lw['LumbarAj'], ca.vec(aLumbar_col), uw['LumbarAj']))
             opti.set_initial(aLumbar_col, w0['LumbarAj'].to_numpy().T)
-            assert np.alltrue(lw['LumbarAj'] <= ca.vec(w0['LumbarAj'].to_numpy().T).full()), "Issue with lower bound lumbar activations (collocation points)"
-            assert np.alltrue(uw['LumbarAj'] >= ca.vec(w0['LumbarAj'].to_numpy().T).full()), "Issue with upper bound lumbar activations (collocation points)"
+            assert np.all(lw['LumbarAj'] <= ca.vec(w0['LumbarAj'].to_numpy().T).full()), "Issue with lower bound lumbar activations (collocation points)"
+            assert np.all(uw['LumbarAj'] >= ca.vec(w0['LumbarAj'].to_numpy().T).full()), "Issue with upper bound lumbar activations (collocation points)"
         # Controls.
         if torque_driven_model:
             # Coordinate excitation at mesh points.
             eCoord = opti.variable(nMuscleDrivenJoints, N)
             opti.subject_to(opti.bounded(lw['CoordEk'], ca.vec(eCoord), uw['CoordEk']))
             opti.set_initial(eCoord, w0['CoordE'].to_numpy().T)
-            assert np.alltrue(lw['CoordEk'] <= ca.vec(w0['CoordE'].to_numpy().T).full()), "Issue with lower bound coordinate excitations"
-            assert np.alltrue(uw['CoordEk'] >= ca.vec(w0['CoordE'].to_numpy().T).full()), "Issue with upper bound coordinate excitations"
+            assert np.all(lw['CoordEk'] <= ca.vec(w0['CoordE'].to_numpy().T).full()), "Issue with lower bound coordinate excitations"
+            assert np.all(uw['CoordEk'] >= ca.vec(w0['CoordE'].to_numpy().T).full()), "Issue with upper bound coordinate excitations"
         else:
             # Muscle activation derivative at mesh points.
             aDt = opti.variable(nMuscles, N)
             opti.subject_to(opti.bounded(lw['ADtk'], ca.vec(aDt), uw['ADtk']))
             opti.set_initial(aDt, w0['ADt'].to_numpy().T)
-            assert np.alltrue(lw['ADtk'] <= ca.vec(w0['ADt'].to_numpy().T).full()), "Issue with lower bound muscle activation derivatives"
-            assert np.alltrue(uw['ADtk'] >= ca.vec(w0['ADt'].to_numpy().T).full()), "Issue with upper bound muscle activation derivatives"
+            assert np.all(lw['ADtk'] <= ca.vec(w0['ADt'].to_numpy().T).full()), "Issue with lower bound muscle activation derivatives"
+            assert np.all(uw['ADtk'] >= ca.vec(w0['ADt'].to_numpy().T).full()), "Issue with upper bound muscle activation derivatives"
         if withArms:
             # Arm excitation at mesh points.
             eArm = opti.variable(nArmJoints, N)
             opti.subject_to(opti.bounded(lw['ArmEk'], ca.vec(eArm), uw['ArmEk']))
             opti.set_initial(eArm, w0['ArmE'].to_numpy().T)
-            assert np.alltrue(lw['ArmEk'] <= ca.vec(w0['ArmE'].to_numpy().T).full()), "Issue with lower bound arm excitations"
-            assert np.alltrue(uw['ArmEk'] >= ca.vec(w0['ArmE'].to_numpy().T).full()), "Issue with upper bound arm excitations"
+            assert np.all(lw['ArmEk'] <= ca.vec(w0['ArmE'].to_numpy().T).full()), "Issue with lower bound arm excitations"
+            assert np.all(uw['ArmEk'] >= ca.vec(w0['ArmE'].to_numpy().T).full()), "Issue with upper bound arm excitations"
         if withLumbarCoordinateActuators:
             # Lumbar excitation at mesh points.
             eLumbar = opti.variable(nLumbarJoints, N)
             opti.subject_to(opti.bounded(lw['LumbarEk'], ca.vec(eLumbar), uw['LumbarEk']))
             opti.set_initial(eLumbar, w0['LumbarE'].to_numpy().T)
-            assert np.alltrue(lw['LumbarEk'] <= ca.vec(w0['LumbarE'].to_numpy().T).full()), "Issue with lower bound lumbar excitations"
-            assert np.alltrue(uw['LumbarEk'] >= ca.vec(w0['LumbarE'].to_numpy().T).full()), "Issue with upper bound lumbar excitations"
+            assert np.all(lw['LumbarEk'] <= ca.vec(w0['LumbarE'].to_numpy().T).full()), "Issue with lower bound lumbar excitations"
+            assert np.all(uw['LumbarEk'] >= ca.vec(w0['LumbarE'].to_numpy().T).full()), "Issue with upper bound lumbar excitations"
         if not torque_driven_model:
             # Muscle force derivative at mesh points.
             nFDt = opti.variable(nMuscles, N)
             opti.subject_to(opti.bounded(lw['FDtk'], ca.vec(nFDt), uw['FDtk']))
             opti.set_initial(nFDt, w0['FDt'].to_numpy().T)
-            assert np.alltrue(lw['FDtk'] <= ca.vec(w0['FDt'].to_numpy().T).full()), "Issue with lower bound muscle force derivatives"
-            assert np.alltrue(uw['FDtk'] >= ca.vec(w0['FDt'].to_numpy().T).full()), "Issue with upper bound muscle force derivatives"
+            assert np.all(lw['FDtk'] <= ca.vec(w0['FDt'].to_numpy().T).full()), "Issue with lower bound muscle force derivatives"
+            assert np.all(uw['FDtk'] >= ca.vec(w0['FDt'].to_numpy().T).full()), "Issue with upper bound muscle force derivatives"
         # Joint velocity derivative (acceleration) at mesh points.
         Qdds = opti.variable(nJoints, N)
         opti.subject_to(opti.bounded(lw['Qddsk'], ca.vec(Qdds), uw['Qddsk']))
         opti.set_initial(Qdds, w0['Qdds'].to_numpy().T)
-        assert np.alltrue(lw['Qddsk'] <= ca.vec(w0['Qdds'].to_numpy().T).full()), "Issue with lower bound coordinate speed derivatives"
-        assert np.alltrue(uw['Qddsk'] >= ca.vec(w0['Qdds'].to_numpy().T).full()), "Issue with upper bound coordinate speed derivatives"
+        assert np.all(lw['Qddsk'] <= ca.vec(w0['Qdds'].to_numpy().T).full()), "Issue with lower bound coordinate speed derivatives"
+        assert np.all(uw['Qddsk'] >= ca.vec(w0['Qdds'].to_numpy().T).full()), "Issue with upper bound coordinate speed derivatives"
         # Reserve actuator at mesh points.
         if withReserveActuators:
             rAct = {}
@@ -1292,8 +1260,8 @@ def run_tracking(baseDir, dataDir, subject, settings, case='0',
                 rAct[c_j] = opti.variable(1, N)
                 opti.subject_to(opti.bounded(lw['rActk'][c_j], ca.vec(rAct[c_j]), uw['rActk'][c_j]))
                 opti.set_initial(rAct[c_j], w0['rAct'][c_j].to_numpy().T)
-                assert np.alltrue(lw['rActk'][c_j] <= ca.vec(w0['rAct'][c_j].to_numpy().T).full()), "Issue with lower bound reserve actuators"
-                assert np.alltrue(uw['rActk'][c_j] >= ca.vec(w0['rAct'][c_j].to_numpy().T).full()), "Issue with upper bound reserve actuators"
+                assert np.all(lw['rActk'][c_j] <= ca.vec(w0['rAct'][c_j].to_numpy().T).full()), "Issue with lower bound reserve actuators"
+                assert np.all(uw['rActk'][c_j] >= ca.vec(w0['rAct'][c_j].to_numpy().T).full()), "Issue with upper bound reserve actuators"
             
         # %% Plots initial guess vs bounds.
         plotGuessVsBounds = False
@@ -1572,19 +1540,21 @@ def run_tracking(baseDir, dataDir, subject, settings, case='0',
             # Skeleton dynamics.
             if torque_driven_model:
                 for cj, joint in enumerate(muscleDrivenJoints):                        
-                    coordAct_joint = (
-                        scaling['CoordE'].iloc[0][joint] * 
-                        aCoordkj[cj, 0])
+                    coordActk_joint = (
+                        scaling['CoordE'].iloc[0][joint] * aCoordkj[cj, 0])
+                    # Add contribution of reserve actuator.
+                    if withReserveActuators and joint in reserveActuatorCoordinates:
+                        coordActk_joint += rActk_nsc[joint]
                     diffTk_joint = f_diffTorques(
                         Tk[F_map['residuals'][joint]],
-                        coordAct_joint, 
-                        passiveTorque_k[joint])
+                        coordActk_joint, passiveTorque_k[joint])
                     opti.subject_to(diffTk_joint == 0)
             else:
                 # Muscle-driven joint torques.
                 for joint in muscleDrivenJoints:                
                     Fk_joint = Fk[momentArmIndices[joint]]
                     mTk_joint = ca.sum1(dMk[joint]*Fk_joint)
+                    # Add contribution of reserve actuator.
                     if withReserveActuators and joint in reserveActuatorCoordinates:
                         mTk_joint += rActk_nsc[joint]
                     diffTk_joint = f_diffTorques(
@@ -1592,36 +1562,48 @@ def run_tracking(baseDir, dataDir, subject, settings, case='0',
                         passiveTorque_k[joint])
                     opti.subject_to(diffTk_joint == 0)
                 
+            # TODO: clean up lumbar vs arms vs MTP for consistency.
             # Torque-driven joint torques.            
             # Lumbar joints.
             if withLumbarCoordinateActuators:
                 for cj, joint in enumerate(lumbarJoints):                        
-                    coordAct_lumbar = (
-                        scaling['LumbarE'].iloc[0][joint] * 
-                        aLumbarkj[cj, 0])
+                    coordAct_lumbark = (
+                        scaling['LumbarE'].iloc[0][joint] * aLumbarkj[cj, 0])
+                    passiveTorque_Lumbark = passiveTorque_k[joint]
+                    # Add contribution of reserve actuator.
+                    if withReserveActuators and joint in reserveActuatorCoordinates:
+                        passiveTorque_Lumbark += rActk_nsc[joint]
                     diffTk_lumbar = f_diffTorques(
-                        Tk[F_map['residuals'][joint]],
-                        coordAct_lumbar, 
-                        passiveTorque_k[joint])
+                        Tk[F_map['residuals'][joint]], coordAct_lumbark, 
+                        passiveTorque_Lumbark)
                     opti.subject_to(diffTk_lumbar == 0)
             
             # Arm joints.
+            # Note: there isn't really a reason to have scaled constraints.
+            # Should revise in future versions.
             if withArms:
-                for cj, joint in enumerate(armJoints):
+                for cj, joint in enumerate(armJoints):                    
+                    passiveTorque_Armsk = linearPassiveTorqueArms_k[joint]
+                    # Add contribution of reserve actuator.
+                    if withReserveActuators and joint in reserveActuatorCoordinates:
+                        passiveTorque_Armsk += rActk_nsc[joint]
                     diffTk_joint = f_diffTorques(
                         Tk[F_map['residuals'][joint] ] / 
                         scaling['ArmE'].iloc[0][joint],
-                        aArmkj[cj, 0], linearPassiveTorqueArms_k[joint] /
+                        aArmkj[cj, 0], passiveTorque_Armsk /
                         scaling['ArmE'].iloc[0][joint])
                     opti.subject_to(diffTk_joint == 0)
             
             # Mtp joints.
             if withMTP:
-                for joint in mtpJoints:
+                for joint in mtpJoints:                    
+                    passiveTorque_MTPk = (passiveTorque_k[joint] + 
+                                          linearPassiveTorqueMtp_k[joint])
+                    # Add contribution of reserve actuator.
+                    if withReserveActuators and joint in reserveActuatorCoordinates:
+                        passiveTorque_MTPk += rActk_nsc[joint]
                     diffTk_joint = f_diffTorques(
-                        Tk[F_map['residuals'][joint] ], 
-                        0, (passiveTorque_k[joint] +  
-                            linearPassiveTorqueMtp_k[joint]))
+                        Tk[F_map['residuals'][joint]], 0, passiveTorque_MTPk)
                     opti.subject_to(diffTk_joint == 0)
             
             if not torque_driven_model:
@@ -1666,26 +1648,29 @@ def run_tracking(baseDir, dataDir, subject, settings, case='0',
             
         # Periodic constraints.
         if periodicConstraints:
-            # Joint positions.
-            if 'Qs' in periodicConstraints:
+            # Coordinate values.
+            if 'coordinateValues' in periodicConstraints:
                 opti.subject_to(Qs[idxPeriodicQs, -1] - 
                                 Qs[idxPeriodicQs, 0] == 0)
-            # Joint velocities.
-            if 'Qds' in periodicConstraints:
+            # Coordinate speeds.
+            if 'coordinateSpeeds' in periodicConstraints:
                 opti.subject_to(Qds[idxPeriodicQds, -1] - 
                                 Qds[idxPeriodicQds, 0] == 0)
             # Muscle activations and forces.
-            if 'muscles' in periodicConstraints:
-                if torque_driven_model:
-                    opti.subject_to(aCoord[idxPeriodicMuscles, -1] - 
-                                    aCoord[idxPeriodicMuscles, 0] == 0)
-                else:
-                    opti.subject_to(a[idxPeriodicMuscles, -1] - 
-                                    a[idxPeriodicMuscles, 0] == 0)
-                    opti.subject_to(nF[idxPeriodicMuscles, -1] - 
-                                    nF[idxPeriodicMuscles, 0] == 0)
-            if 'lumbar' in periodicConstraints:
-                # Lumbar activations
+            if 'muscleActivationsForces' in periodicConstraints:
+                opti.subject_to(a[idxPeriodicMuscles, -1] - 
+                                a[idxPeriodicMuscles, 0] == 0)
+                opti.subject_to(nF[idxPeriodicMuscles, -1] - 
+                                nF[idxPeriodicMuscles, 0] == 0)
+                
+            # Coordinate activations.
+            if ('lowerLimbJointActivations' in periodicConstraints and
+                torque_driven_model):
+                opti.subject_to(aCoord[idxPeriodicMuscles, -1] - 
+                                aCoord[idxPeriodicMuscles, 0] == 0)
+
+            # Lumbar activations.
+            if 'lumbarJointActivations' in periodicConstraints:                
                 opti.subject_to(aLumbar[idxPeriodicLumbar, -1] - 
                                 aLumbar[idxPeriodicLumbar, 0] == 0)
                 
@@ -1899,13 +1884,13 @@ def run_tracking(baseDir, dataDir, subject, settings, case='0',
         QsQds_opt_nsc = np.zeros((nJoints*2, N+1))
         QsQds_opt_nsc[::2, :] = Qs_opt_nsc[idxJoints4F, :]
         QsQds_opt_nsc[1::2, :] = Qds_opt_nsc[idxJoints4F, :]
-        Qdds_opt_nsc = Qdds_opt_nsc[idxJoints4F, :]
+        Qdds_opt_nsc_4F = Qdds_opt_nsc[idxJoints4F, :]
         if treadmill:
             Tj_temp = F(ca.vertcat(
-                ca.vertcat(QsQds_opt_nsc[:, 0], Qdds_opt_nsc[:, 0]), 
+                ca.vertcat(QsQds_opt_nsc[:, 0], Qdds_opt_nsc_4F[:, 0]), 
                 -settings['treadmill_speed']))
         else:
-            Tj_temp = F(ca.vertcat(QsQds_opt_nsc[:, 0], Qdds_opt_nsc[:, 0]))          
+            Tj_temp = F(ca.vertcat(QsQds_opt_nsc[:, 0], Qdds_opt_nsc_4F[:, 0]))          
         F_out_pp = np.zeros((Tj_temp.shape[0], N))
         if withMTP:
             mtpT = np.zeros((nMtpJoints, N))
@@ -1914,10 +1899,10 @@ def run_tracking(baseDir, dataDir, subject, settings, case='0',
         for k in range(N):
             if treadmill:
                 Tk = F(ca.vertcat(
-                    ca.vertcat(QsQds_opt_nsc[:, k], Qdds_opt_nsc[:, k]), 
+                    ca.vertcat(QsQds_opt_nsc[:, k], Qdds_opt_nsc_4F[:, k]), 
                     -settings['treadmill_speed']))
             else:
-                Tk = F(ca.vertcat(QsQds_opt_nsc[:, k], Qdds_opt_nsc[:, k]))
+                Tk = F(ca.vertcat(QsQds_opt_nsc[:, k], Qdds_opt_nsc_4F[:, k]))
             F_out_pp[:, k] = Tk.full().T
             if withArms:
                 for cj, joint in enumerate(armJoints):
@@ -1929,10 +1914,10 @@ def run_tracking(baseDir, dataDir, subject, settings, case='0',
                         scaling['ArmE'].iloc[0][joint])                
         # Sanity checks.
         if stats['success'] and withArms:
-            assert np.alltrue(np.abs(armT) < 10**(-ipopt_tolerance)), (
+            assert np.all(np.abs(armT) < 10**(-ipopt_tolerance)), (
                 "Error arm torques balance")                    
         if stats['success'] and withMTP:
-            assert np.alltrue(np.abs(mtpT) < 10**(-ipopt_tolerance)), (
+            assert np.all(np.abs(mtpT) < 10**(-ipopt_tolerance)), (
                 "Error mtp torques balance")
         # Extract GRFs, GRMs, and compute free moments and COPs. 
         GRF_all_opt, GRM_all_opt, COP_all_opt, freeT_all_opt = {}, {}, {}, {}
@@ -2275,7 +2260,7 @@ def run_tracking(baseDir, dataDir, subject, settings, case='0',
         # Combined terms.
         JAll_opt = JTrack_opt + JMotor_opt
         if stats['success']:
-            assert np.alltrue(
+            assert np.all(
                 np.abs(JAll_opt[0][0] - stats['iterations']['obj'][-1]) 
                 <= 1e-5), "Error reconstructing optimal cost value"        
         JTerms = {}
@@ -2311,23 +2296,23 @@ def run_tracking(baseDir, dataDir, subject, settings, case='0',
         if trackQdds:
             JTerms["accelerationTerm_sc"] = JTerms["accelerationTerm"] / JAll_opt[0][0]                
         # Print out contributions to the cost function.
-        print("\nCONTRIBUTION TO THE COST FUNCTION")
+        print("\nContributions to the objective function:")
         if torque_driven_model:
-            print("Coordinate excitations: {}%".format(np.round(JTerms["coordinateExcitationTerm_sc"] * 100, 2)))
+            print("\tCoordinate excitations: {}%".format(np.round(JTerms["coordinateExcitationTerm_sc"] * 100, 2)))
         else:
-            print("Muscle activations: {}%".format(np.round(JTerms["activationTerm_sc"] * 100, 2)))
-            print("Muscle activation derivatives: {}%".format(np.round(JTerms["activationDtTerm_sc"] * 100, 2)))
-            print("Muscle-tendon force derivatives: {}%".format(np.round(JTerms["forceDtTerm_sc"] * 100, 2)))
+            print("\tMuscle activations: {}%".format(np.round(JTerms["activationTerm_sc"] * 100, 2)))
+            print("\tMuscle activation derivatives: {}%".format(np.round(JTerms["activationDtTerm_sc"] * 100, 2)))
+            print("\tMuscle-tendon force derivatives: {}%".format(np.round(JTerms["forceDtTerm_sc"] * 100, 2)))
         if withArms:
-            print("Arm excitations: {}%".format(np.round(JTerms["armExcitationTerm_sc"] * 100, 2)))
+            print("\tArm excitations: {}%".format(np.round(JTerms["armExcitationTerm_sc"] * 100, 2)))
         if withLumbarCoordinateActuators:
-            print("Lumbar excitations: {}%".format(np.round(JTerms["lumbarExcitationTerm_sc"] * 100, 2)))
-        print("Joint accelerations: {}%".format(np.round(JTerms["jointAccelerationTerm_sc"] * 100, 2)))        
-        print("Position tracking: {}%".format(np.round(JTerms["positionTerm_sc"] * 100, 2)))
-        print("Velocity tracking: {}%".format(np.round(JTerms["velocityTerm_sc"] * 100, 2)))
+            print("\tLumbar excitations: {}%".format(np.round(JTerms["lumbarExcitationTerm_sc"] * 100, 2)))
+        print("\tJoint accelerations: {}%".format(np.round(JTerms["jointAccelerationTerm_sc"] * 100, 2)))        
+        print("\tPosition tracking: {}%".format(np.round(JTerms["positionTerm_sc"] * 100, 2)))
+        print("\tVelocity tracking: {}%".format(np.round(JTerms["velocityTerm_sc"] * 100, 2)))
         if trackQdds:
-            print("Acceleration tracking: {}%".format(np.round(JTerms["accelerationTerm_sc"] * 100, 2)))           
-        print("# Iterations: {}\n".format(stats["iter_count"]))
+            print("\tAcceleration tracking: {}%".format(np.round(JTerms["accelerationTerm_sc"] * 100, 2)))           
+        print("\nNumber of iterations: {}\n".format(stats["iter_count"]))
             
         # %% Compute knee adduction moments.
         if computeKAM:            
@@ -2355,7 +2340,7 @@ def run_tracking(baseDir, dataDir, subject, settings, case='0',
         # %% Compute medial knee contact forces.
         if torque_driven_model:
             computeMCF = False
-            print("To compute contact forces, use a muscle-driven model.")
+            print("To compute medial knee contact forces, use a muscle-driven model.\n")
         if computeMCF:
             # Export muscle forces and non muscle-driven torques (if existing).
             import pandas as pd
@@ -2394,7 +2379,7 @@ def run_tracking(baseDir, dataDir, subject, settings, case='0',
                         labels_torques.append(c_j)
                         data_torques.insert(data_torques.shape[1],
                                             c_j, aLumbar_opt_nsc)
-                    assert np.alltrue(
+                    assert np.all(
                             np.abs(torques_opt[joints.index(c_j),:]
                                    - data_torques[c_j]) 
                             < 10**(-2)), "error torques coordinate actuators"
@@ -2409,7 +2394,7 @@ def run_tracking(baseDir, dataDir, subject, settings, case='0',
                         labels_torques.append(c_j)
                         data_torques.insert(data_torques.shape[1], c_j, 
                                             aArm_opt_nsc + c_torque)
-                    assert np.alltrue(
+                    assert np.all(
                             np.abs(torques_opt[joints.index(c_j),:] 
                                    - data_torques[c_j]) 
                             < 10**(-2)), "error torques arms"
@@ -2419,7 +2404,7 @@ def run_tracking(baseDir, dataDir, subject, settings, case='0',
                     c_data_torques = data_torques[c_j].to_numpy()
                 else:
                     c_data_torques = np.zeros((data_torques.shape[0],))
-                assert np.alltrue(
+                assert np.all(
                         np.abs(torques_opt[joints.index(c_j),:] - (
                             c_data_torques + pMT_opt[count_j, :] + 
                             aMT_opt[count_j, :])) 
