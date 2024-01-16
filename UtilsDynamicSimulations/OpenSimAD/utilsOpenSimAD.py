@@ -37,8 +37,8 @@ import seaborn as sns
 
 from utils import (storage_to_numpy, storage_to_dataframe, 
                    download_kinematics, import_metadata, numpy_to_storage)
-from utilsProcessing import (segmentSquats, segmentSTS, adjustMuscleWrapping,
-                             generateModelWithContacts)
+from utilsProcessing import (segment_squats, segment_STS, adjust_muscle_wrapping,
+                             generate_model_with_contacts)
 from settingsOpenSimAD import get_setup
 
 # %% Filter numpy array.
@@ -71,7 +71,7 @@ def interpolateNumpyArray_time(data, time, tIn, tEnd, N):
     return dataInterp 
 
 # %% Solve problem with bounds instead of constraints.
-def solve_with_bounds(opti, tolerance):
+def solve_with_bounds(opti, tolerance, useExpressionGraphFunction):
     
     # Get guess.
     guess = opti.debug.value(opti.x, opti.initial())
@@ -129,7 +129,10 @@ def solve_with_bounds(opti, tolerance):
     
     prob = {'x': opti.x, 'f': opti.f, 'g': new_g}
     s_opts = {}
-    s_opts["expand"] = False
+    if useExpressionGraphFunction:
+        s_opts["expand"] = True
+    else:
+        s_opts["expand"] = False
     s_opts["ipopt.hessian_approximation"] = "limited-memory"
     s_opts["ipopt.mu_strategy"] = "adaptive"
     s_opts["ipopt.max_iter"] = 10000
@@ -204,7 +207,7 @@ def getColfromk(xk, d, N):
     return xj
 
 # %% Verify if within range used for fitting polynomials.
-def checkQsWithinPolynomialBounds(data, bounds, coordinates):
+def checkQsWithinPolynomialBounds(data, bounds, model_bounds, coordinates):
     
     updated_bounds = {}    
     for coord in coordinates:
@@ -212,12 +215,24 @@ def checkQsWithinPolynomialBounds(data, bounds, coordinates):
             c_idc = coordinates.index(coord)
             c_data = data[c_idc, :]
             # Small margin to account for filtering.                
-            if not np.all(c_data * 180 / np.pi <= bounds[coord]['max'] + 1):
-                print('WARNING: the {} coordinate values to track have values above the default upper bound ROM for polynomial fitting: {}deg >= {}deg'.format(coord, np.round(np.max(c_data) / np.pi * 180, 0), np.round(bounds[coord]['max'], 2)))
-                updated_bounds[coord] = {'max': np.round(np.max(c_data) * 180 / np.pi, 0)}
-            if not np.all(c_data * 180 / np.pi >= bounds[coord]['min'] - 1):
-                print('WARNING: the {} coordinate values to track have values below default lower bound ROM for polynomial fitting: {}deg <= {}deg'.format(coord, np.round(np.min(c_data) / np.pi * 180, 0), np.round(bounds[coord]['min'], 2)))
-                updated_bounds[coord] = {'min': np.round(np.min(c_data) * 180 / np.pi, 0)}
+            if not np.all(c_data * 180 / np.pi <= bounds[coord]['max']):
+                print('WARNING: the {} coordinate values to track have values above the default upper bound ROM for polynomial fitting: {}deg >= {}deg'.format(coord, np.round(np.max(c_data) * 180 / np.pi, 2), np.round(bounds[coord]['max'], 2)))
+                new_bound = np.ceil(np.max(c_data) * 180 / np.pi)
+                if new_bound > model_bounds[coord]['max']:
+                    print('The maximal value is above the model upper bound, this might happen when filtering data. The model upper bound will be used instead.')
+                    new_bound = model_bounds[coord]['max']
+                print('Upper bound set to: {}deg'.format(new_bound))
+                updated_bounds[coord] = {'max': new_bound}
+            if not np.all(c_data * 180 / np.pi >= bounds[coord]['min']):
+                print('WARNING: the {} coordinate values to track have values below default lower bound ROM for polynomial fitting: {}deg <= {}deg'.format(coord, np.round(np.min(c_data) * 180 / np.pi, 2), np.round(bounds[coord]['min'], 2)))
+                new_bound = np.floor(np.min(c_data) * 180 / np.pi)
+                if new_bound < model_bounds[coord]['min']:
+                    print('The minimal value is below the model lower bound, this might happen when filtering data. The model lower bound will be used instead.')
+                    new_bound = model_bounds[coord]['min']                
+                if coord in updated_bounds and 'max' in updated_bounds[coord]:
+                    updated_bounds[coord]['min'] = new_bound
+                else:
+                    updated_bounds[coord] = {'min': new_bound}
     
     return updated_bounds
 
@@ -513,9 +528,11 @@ def generateExternalFunction(
         baseDir, dataDir, subject, 
         OpenSimModel="LaiUhlrich2022",
         treadmill=False, build_externalFunction=True, verifyID=True, 
-        externalFunctionName='F', overwrite=False):
+        externalFunctionName='F', overwrite=False,
+        useExpressionGraphFunction=True):
 
     # %% Process settings.
+    pathCWD = os.getcwd()
     osDir = os.path.join(dataDir, subject, 'OpenSimData')
     pathModelFolder = os.path.join(osDir, 'Model')
     suffix_MA = '_adjusted'
@@ -531,19 +548,25 @@ def generateExternalFunction(
                                   externalFunctionName + ".cpp")
     pathOutputMap = os.path.join(pathOutputExternalFunctionFolder, 
                                  externalFunctionName + "_map.npy")
-    if platform.system() == 'Windows':
-        ext_F = '.dll'
-    elif platform.system() == 'Darwin':
-        ext_F = '.dylib'
-    elif platform.system() == 'Linux':
-        ext_F = '.so'
+    
+    if useExpressionGraphFunction:
+        pathExternalFunction = os.path.join(pathOutputExternalFunctionFolder, 
+                                        externalFunctionName + '.py')
     else:
-        raise ValueError("Platform not supported.")
-    pathOutputDll = os.path.join(pathOutputExternalFunctionFolder, 
-                                 externalFunctionName + ext_F)
+        # This will be deprecated in the future.
+        if platform.system() == 'Windows':
+            ext_F = '.dll'
+        elif platform.system() == 'Darwin':
+            ext_F = '.dylib'
+        elif platform.system() == 'Linux':
+            ext_F = '.so'
+        else:
+            raise ValueError("Platform not supported.")
+        pathExternalFunction = os.path.join(pathOutputExternalFunctionFolder, 
+                                    externalFunctionName + ext_F)    
     
     if (overwrite is False and os.path.exists(pathOutputFile) and 
-        os.path.exists(pathOutputMap) and os.path.exists(pathOutputDll)):
+        os.path.exists(pathOutputMap) and os.path.exists(pathExternalFunction)):
         return      
     else:
         print('Generate external function to leverage automatic differentiation.')
@@ -1513,10 +1536,11 @@ def generateExternalFunction(
         pathDCAD = os.path.join(baseDir, 'UtilsDynamicSimulations', 'OpenSimAD') 
         buildExternalFunction(
             externalFunctionName, pathDCAD, pathOutputExternalFunctionFolder,
-            3*nCoordinates, treadmill=treadmill)
+            3*nCoordinates, treadmill=treadmill, 
+            useExpressionGraphFunction=useExpressionGraphFunction)
         
-    # %% Verification..
-    if verifyID:    
+    # %% Verification.
+    if verifyID:
         # Run ID with the .osim file
         pathGenericTemplates = os.path.join(baseDir, "OpenSimPipeline") 
         pathGenericIDFolder = os.path.join(pathGenericTemplates,
@@ -1566,18 +1590,7 @@ def generateExternalFunction(
             ID_osim[count] = ID_osim_df.iloc[0][coordinate + suffix_header]
             count += 1
         
-        # Extract torques from external function.
-        import casadi as ca
-        os_system = platform.system()
-        if os_system == 'Windows':
-            F_ext = '.dll'
-        elif os_system == 'Linux':
-            F_ext = '.so'
-        elif os_system == 'Darwin':
-            F_ext = '.dylib'
-        F = ca.external('F', os.path.join(
-            pathOutputExternalFunctionFolder, externalFunctionName + F_ext))
-        
+        # Extract torques from external function.        
         vec1 = np.zeros((nCoordinates*2, 1))
         vec1[::2, :] = 0.05   
         vec1[8, :] = -0.05
@@ -1587,30 +1600,73 @@ def generateExternalFunction(
             vec3 = np.concatenate((vec1,vec2,vec4))
         else:            
             vec3 = np.concatenate((vec1,vec2))
-        ID_F = (F(vec3)).full().flatten()[:nCoordinates]
-        assert(np.max(np.abs(ID_osim - ID_F)) < 1e-6), (
-            'error F vs ID tool {}'.format(np.max(np.abs(ID_osim - ID_F))))
-        print('Verification torque generation: success')
+
+        if useExpressionGraphFunction:
+            # Approach 1: Expression graph.
+            pathExpressionGraph = os.path.join(
+                pathOutputExternalFunctionFolder, externalFunctionName + '.py')
+            if os.path.exists(pathExpressionGraph):
+                dim = vec3.shape[0]
+                sys.path.append(pathOutputExternalFunctionFolder)
+                os.chdir(pathOutputExternalFunctionFolder)
+                F = getF_expressingGraph(dim, externalFunctionName)
+                sys.path.remove(pathOutputExternalFunctionFolder)
+                os.chdir(pathCWD)
+                ID_F = (F(vec3)).full().flatten()[:nCoordinates]
+                assert(np.max(np.abs(ID_osim - ID_F)) < 1e-6), (
+                    'error F vs ID tool {}'.format(np.max(np.abs(ID_osim - ID_F))))
+                print('Verification torque with expression graph: success')
+
+        else:
+            # Approach 2: External function.
+            # Will be deprecated in the future.
+            os_system = platform.system()
+            if os_system == 'Windows':
+                F_ext = '.dll'
+            elif os_system == 'Linux':
+                F_ext = '.so'
+            elif os_system == 'Darwin':
+                F_ext = '.dylib'
+            pathExternalFunction = os.path.join(
+                pathOutputExternalFunctionFolder, externalFunctionName + F_ext)
+            if os.path.exists(pathExternalFunction):
+                import casadi as ca            
+                F = ca.external('F', pathExternalFunction)
+                ID_F = (F(vec3)).full().flatten()[:nCoordinates]
+                assert(np.max(np.abs(ID_osim - ID_F)) < 1e-6), (
+                    'error F vs ID tool {}'.format(np.max(np.abs(ID_osim - ID_F))))
+                print('Verification torque with external function: success')
+        
+        # Clean up.
         os.remove(os.path.join(
             pathOutputExternalFunctionFolder,"ID_withOsimAndIDTool.sto"))
         os.remove(os.path.join(
             pathOutputExternalFunctionFolder,"Setup_InverseDynamics.xml"))
 
 # %% Generate c code from expression graph.
-def generateF(dim):
-    import foo
-    importlib.reload(foo)
+def generateF(dim, script_name):
+    foo_module = importlib.import_module(script_name)
+    importlib.reload(foo_module)
     cg = ca.CodeGenerator('foo_jac')
     arg = ca.SX.sym('arg', dim)
-    y,_,_ = foo.foo(arg)
+    y,_,_ = foo_module.foo(arg)
     F = ca.Function('F',[arg],[y])
     cg.add(F)
     cg.add(F.jacobian())
     cg.generate()
+    
+# %% Generate function from expression graph.
+def getF_expressingGraph(dim, script_name):
+    foo_module = importlib.import_module(script_name)
+    importlib.reload(foo_module)
+    arg = ca.SX.sym('arg', dim)
+    y,_,_ = foo_module.foo(arg)
+    F = ca.Function('F',[arg],[y])    
+    return F    
 
 # %% Compile external function.
 def buildExternalFunction(filename, pathDCAD, CPP_DIR, nInputs,
-                          treadmill=False):       
+                          treadmill=False, useExpressionGraphFunction=True):       
     
     # %% Part 1: build expression graph (i.e., generate foo.py).
     pathMain = os.getcwd()
@@ -1715,55 +1771,61 @@ def buildExternalFunction(filename, pathDCAD, CPP_DIR, nInputs,
         path_EXE = os.path.join(pathBuild, 'RelWithDebInfo', filename + '.exe')
         cmd2w = '"{}"'.format(path_EXE)
         os.system(cmd2w)
-    
+
+    fooName = "foo"
+    path_external_filename_foo = os.path.join(BIN_DIR, fooName + '.py')
+    if useExpressionGraphFunction:
+        shutil.copy2(path_external_filename_foo, CPP_DIR)
+        os.rename(os.path.join(CPP_DIR, fooName + '.py'), os.path.join(CPP_DIR, filename + '.py'))
+
     # %% Part 2: build external function (i.e., build .dll/.so/.dylib).
-    fooName = "foo.py"
-    pathBuildExternalFunction = os.path.join(pathDCAD, 'buildExternalFunction')
-    path_external_filename_foo = os.path.join(BIN_DIR, fooName)
-    path_external_functions_filename_build = os.path.join(pathDCAD, 'build-ExternalFunction' + filename)
-    path_external_functions_filename_install = os.path.join(pathDCAD, 'install-ExternalFunction' + filename)
-    os.makedirs(path_external_functions_filename_build, exist_ok=True) 
-    os.makedirs(path_external_functions_filename_install, exist_ok=True)
-    shutil.copy2(path_external_filename_foo, pathBuildExternalFunction)
-    
-    sys.path.append(pathBuildExternalFunction)
-    os.chdir(pathBuildExternalFunction)
-    
-    if treadmill:
-        generateF(nInputs+1)
-    else:
-        generateF(nInputs)
-    
+    else:    
+        pathBuildExternalFunction = os.path.join(pathDCAD, 'buildExternalFunction')    
+        path_external_functions_filename_build = os.path.join(pathDCAD, 'build-ExternalFunction' + filename)
+        path_external_functions_filename_install = os.path.join(pathDCAD, 'install-ExternalFunction' + filename)
+        os.makedirs(path_external_functions_filename_build, exist_ok=True) 
+        os.makedirs(path_external_functions_filename_install, exist_ok=True)
+        shutil.copy2(path_external_filename_foo, pathBuildExternalFunction)    
+        
+        sys.path.append(pathBuildExternalFunction)
+        os.chdir(pathBuildExternalFunction)
+        
+        if treadmill:
+            generateF(nInputs+1, fooName)
+        else:
+            generateF(nInputs, fooName)
+        
+        if os_system == 'Windows':
+            cmd3 = 'cmake "' + pathBuildExternalFunction + '" -A x64 -DTARGET_NAME:STRING="' + filename + '" -DINSTALL_DIR:PATH="' + path_external_functions_filename_install + '"'
+            cmd4 = "cmake --build . --config RelWithDebInfo --target install"
+        elif os_system == 'Linux':
+            cmd3 = 'cmake "' + pathBuildExternalFunction + '" -DTARGET_NAME:STRING="' + filename + '" -DINSTALL_DIR:PATH="' + path_external_functions_filename_install + '"'
+            cmd4 = "make install"
+        elif os_system == 'Darwin':
+            cmd3 = 'cmake "' + pathBuildExternalFunction + '" -DTARGET_NAME:STRING="' + filename + '" -DINSTALL_DIR:PATH="' + path_external_functions_filename_install + '"'
+            cmd4 = "make install"
+        
+        os.chdir(path_external_functions_filename_build)
+        os.system(cmd3)
+        os.system(cmd4)    
+        os.chdir(pathMain)
+        
+        if os_system == 'Windows':
+            shutil.copy2(os.path.join(path_external_functions_filename_install, 'bin', filename + '.dll'), CPP_DIR)
+        elif os_system == 'Linux':
+            shutil.copy2(os.path.join(path_external_functions_filename_install, 'lib', 'lib' + filename + '.so'), CPP_DIR)
+            os.rename(os.path.join(CPP_DIR, 'lib' + filename + '.so'), os.path.join(CPP_DIR, filename + '.so'))
+        elif os_system == 'Darwin':
+            shutil.copy2(os.path.join(path_external_functions_filename_install, 'lib', 'lib' + filename + '.dylib'), CPP_DIR)
+            os.rename(os.path.join(CPP_DIR, 'lib' + filename + '.dylib'), os.path.join(CPP_DIR, filename + '.dylib'))
+        
+        os.remove(os.path.join(pathBuildExternalFunction, "foo_jac.c"))        
+        os.remove(os.path.join(pathBuildExternalFunction, fooName + '.py'))
+        shutil.rmtree(pathBuild)
+        shutil.rmtree(path_external_functions_filename_install)
+        shutil.rmtree(path_external_functions_filename_build)
     if os_system == 'Windows':
-        cmd3 = 'cmake "' + pathBuildExternalFunction + '" -A x64 -DTARGET_NAME:STRING="' + filename + '" -DINSTALL_DIR:PATH="' + path_external_functions_filename_install + '"'
-        cmd4 = "cmake --build . --config RelWithDebInfo --target install"
-    elif os_system == 'Linux':
-        cmd3 = 'cmake "' + pathBuildExternalFunction + '" -DTARGET_NAME:STRING="' + filename + '" -DINSTALL_DIR:PATH="' + path_external_functions_filename_install + '"'
-        cmd4 = "make install"
-    elif os_system == 'Darwin':
-        cmd3 = 'cmake "' + pathBuildExternalFunction + '" -DTARGET_NAME:STRING="' + filename + '" -DINSTALL_DIR:PATH="' + path_external_functions_filename_install + '"'
-        cmd4 = "make install"
-    
-    os.chdir(path_external_functions_filename_build)
-    os.system(cmd3)
-    os.system(cmd4)    
-    os.chdir(pathMain)
-    
-    if os_system == 'Windows':
-        shutil.copy2(os.path.join(path_external_functions_filename_install, 'bin', filename + '.dll'), CPP_DIR)
-    elif os_system == 'Linux':
-        shutil.copy2(os.path.join(path_external_functions_filename_install, 'lib', 'lib' + filename + '.so'), CPP_DIR)
-        os.rename(os.path.join(CPP_DIR, 'lib' + filename + '.so'), os.path.join(CPP_DIR, filename + '.so'))
-    elif os_system == 'Darwin':
-        shutil.copy2(os.path.join(path_external_functions_filename_install, 'lib', 'lib' + filename + '.dylib'), CPP_DIR)
-        os.rename(os.path.join(CPP_DIR, 'lib' + filename + '.dylib'), os.path.join(CPP_DIR, filename + '.dylib'))
-    
-    os.remove(os.path.join(pathBuildExternalFunction, "foo_jac.c"))
-    os.remove(os.path.join(pathBuildExternalFunction, fooName))
-    os.remove(path_external_filename_foo)
-    shutil.rmtree(pathBuild)
-    shutil.rmtree(path_external_functions_filename_install)
-    shutil.rmtree(path_external_functions_filename_build)
+        os.remove(path_external_filename_foo)
     
 # %% Download file given url (approach 1).
 def download_file(url, file_name):
@@ -2153,7 +2215,8 @@ def plotResultsOpenSimAD(dataDir, subject, motion_filename, settings,
 # %% Process inputs for optimal control problem.   
 def processInputsOpenSimAD(baseDir, dataFolder, session_id, trial_name,
                            motion_type, time_window=[], repetition=None,
-                           treadmill_speed=0, overwrite=False):
+                           treadmill_speed=0, overwrite=False,
+                           useExpressionGraphFunction=True):
         
     # Path session folder.
     sessionFolder =  os.path.join(dataFolder, session_id)
@@ -2179,16 +2242,17 @@ def processInputsOpenSimAD(baseDir, dataFolder, session_id, trial_name,
     
     # Prepare inputs for dynamic simulations.
     # Adjust muscle wrapping.    
-    adjustMuscleWrapping(baseDir, dataFolder, session_id,
+    adjust_muscle_wrapping(baseDir, dataFolder, session_id,
                          OpenSimModel=OpenSimModel, overwrite=overwrite)
     # Add foot-ground contacts to musculoskeletal model.    
-    generateModelWithContacts(dataFolder, session_id, 
+    generate_model_with_contacts(dataFolder, session_id, 
                               OpenSimModel=OpenSimModel, overwrite=overwrite)
     # Generate external function.    
     generateExternalFunction(baseDir, dataFolder, session_id,
                              OpenSimModel=OpenSimModel,
                              overwrite=overwrite, 
-                             treadmill=bool(treadmill_speed))
+                             treadmill=bool(treadmill_speed),
+                             useExpressionGraphFunction=useExpressionGraphFunction)
     
     # Get settings.
     settings = get_setup(motion_type)
@@ -2198,9 +2262,9 @@ def processInputsOpenSimAD(baseDir, dataFolder, session_id, trial_name,
     if (repetition is not None and 
         (motion_type == 'squats' or motion_type == 'sit_to_stand')): 
         if motion_type == 'squats':
-            times_window = segmentSquats(pathMotionFile, visualize=True)
+            times_window = segment_squats(pathMotionFile, visualize=True)
         elif motion_type == 'sit_to_stand':
-            _, _, times_window = segmentSTS(pathMotionFile, visualize=True)
+            _, _, times_window = segment_STS(pathMotionFile, visualize=True)
         time_window = times_window[repetition]
         settings['repetition'] = repetition
     else:
@@ -2233,6 +2297,9 @@ def processInputsOpenSimAD(baseDir, dataFolder, session_id, trial_name,
     
     # OpenSim model name
     settings['OpenSimModel'] = OpenSimModel
+
+    # Whether to use the expression graph function or (old) external function.
+    settings['useExpressionGraphFunction'] = useExpressionGraphFunction
     
     return settings
 
