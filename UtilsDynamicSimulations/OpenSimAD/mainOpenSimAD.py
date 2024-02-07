@@ -59,6 +59,7 @@ def run_tracking(baseDir, dataDir, subject, settings, case='0',
     
     # Model info.
     # Model name.
+    #OpenSimModel = 'LaiArnoldModified2017_poly_withArms_weldHand'
     OpenSimModel = 'LaiUhlrich2022'
     if 'OpenSimModel' in settings:  
         OpenSimModel = settings['OpenSimModel']
@@ -647,39 +648,39 @@ def run_tracking(baseDir, dataDir, subject, settings, case='0',
     # trial being processed. These are also the bounds used in the optimal
     # control problem.
     polynomial_bounds = {
-        'hip_flexion_l': {'max': 120, 'min': -30},
-        'hip_flexion_r': {'max': 120, 'min': -30},
-        'hip_adduction_l': {'max': 20, 'min': -50},
-        'hip_adduction_r': {'max': 20, 'min': -50},
-        'hip_rotation_l': {'max': 35, 'min': -40},
-        'hip_rotation_r': {'max': 35, 'min': -40},
-        'knee_angle_l': {'max': 138, 'min': 0},
-        'knee_angle_r': {'max': 138, 'min': 0},
-        'knee_adduction_l': {'max': 20, 'min': -30},
-        'knee_adduction_r': {'max': 20, 'min': -30},
-        'ankle_angle_l': {'max': 50, 'min': -50},
-        'ankle_angle_r': {'max': 50, 'min': -50},
-        'subtalar_angle_l': {'max': 35, 'min': -35},
-        'subtalar_angle_r': {'max': 35, 'min': -35},
-        'mtp_angle_l': {'max': 5, 'min': -45},
-        'mtp_angle_r': {'max': 5, 'min': -45}}
+            'hip_flexion_l': {'max': 120, 'min': -50},
+            'hip_flexion_r': {'max': 120, 'min': -50},
+            'hip_adduction_l': {'max': 20, 'min': -50},
+            'hip_adduction_r': {'max': 20, 'min': -50},
+            'hip_rotation_l': {'max': 60, 'min': -40},
+            'hip_rotation_r': {'max': 60, 'min': -40},
+            'knee_angle_l': {'max': 140, 'min': 0},
+            'knee_angle_r': {'max': 140, 'min': 0},
+            'knee_adduction_l': {'max': 20, 'min': -50},
+            'knee_adduction_r': {'max': 20, 'min': -50},
+            'ankle_angle_l': {'max': 50, 'min': -70},
+            'ankle_angle_r': {'max': 50, 'min': -70},
+            'subtalar_angle_l': {'max': 50, 'min': -50},
+            'subtalar_angle_r': {'max': 50, 'min': -50},
+            'mtp_angle_l': {'max': 30, 'min': -45},
+            'mtp_angle_r': {'max': 30, 'min': -45}}
     model_bounds = {
-        'hip_flexion_l': {'max': 120, 'min': -30},
-        'hip_flexion_r': {'max': 120, 'min': -30},
-        'hip_adduction_l': {'max': 30, 'min': -50},
-        'hip_adduction_r': {'max': 30, 'min': -50},
-        'hip_rotation_l': {'max': 40, 'min': -40},
-        'hip_rotation_r': {'max': 40, 'min': -40},
-        'knee_angle_l': {'max': 140, 'min': 0},
-        'knee_angle_r': {'max': 140, 'min': 0},
-        'knee_adduction_l': {'max': 20, 'min': -30},
-        'knee_adduction_r': {'max': 20, 'min': -30},
-        'ankle_angle_l': {'max': 50, 'min': -50},
-        'ankle_angle_r': {'max': 50, 'min': -50},
-        'subtalar_angle_l': {'max': 35, 'min': -35},
-        'subtalar_angle_r': {'max': 35, 'min': -35},
-        'mtp_angle_l': {'max': 30, 'min': -45},
-        'mtp_angle_r': {'max': 30, 'min': -45}}
+            'hip_flexion_l': {'max': 120, 'min': -50},
+            'hip_flexion_r': {'max': 120, 'min': -50},
+            'hip_adduction_l': {'max': 20, 'min': -50},
+            'hip_adduction_r': {'max': 20, 'min': -50},
+            'hip_rotation_l': {'max': 60, 'min': -40},
+            'hip_rotation_r': {'max': 60, 'min': -40},
+            'knee_angle_l': {'max': 140, 'min': 0},
+            'knee_angle_r': {'max': 140, 'min': 0},
+            'knee_adduction_l': {'max': 20, 'min': -50},
+            'knee_adduction_r': {'max': 20, 'min': -50},
+            'ankle_angle_l': {'max': 50, 'min': -70},
+            'ankle_angle_r': {'max': 50, 'min': -70},
+            'subtalar_angle_l': {'max': 50, 'min': -50},
+            'subtalar_angle_r': {'max': 50, 'min': -50},
+            'mtp_angle_l': {'max': 30, 'min': -45},
+            'mtp_angle_r': {'max': 30, 'min': -45}}
     # Check if the Qs (coordinate values) to track are within the bounds
     # used to define the polynomials. If not, adjust the polynomial bounds.
     from utilsOpenSimAD import checkQsWithinPolynomialBounds
@@ -1851,7 +1852,7 @@ def run_tracking(baseDir, dataDir, subject, settings, case='0',
         assert (starti == w_opt.shape[0]), "error when extracting results"
         
         # %% Visualize results against bounds.
-        visualizeResultsBounds = False
+        visualizeResultsBounds = True
         if visualizeResultsBounds:
             from plotsOpenSimAD import plotOptimalSolutionVSBounds
             c_wopt = {'Qs_opt': Qs_opt, 'Qs_col_opt': Qs_col_opt,

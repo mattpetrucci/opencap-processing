@@ -525,21 +525,24 @@ def generate_model_with_contacts(
     # The parameters of the foot-ground contacts are based on previous work. We
     # scale the contact sphere locations based on foot dimensions.
     reference_contact_spheres = {
-        "s1_r": {"radius": 0.032, "location": np.array([0.0019011578840796601,   -0.01,  -0.00382630379623308]), "orientation": np.array([0, 0, 0]), "socket_frame": "calcn_r"},
-        "s2_r": {"radius": 0.032, "location": np.array([0.14838639994206301,     -0.01,  -0.028713422052654002]), "orientation": np.array([0, 0, 0]), "socket_frame": "calcn_r"},
-        "s3_r": {"radius": 0.032, "location": np.array([0.13300117060705099,     -0.01,  0.051636247344956601]), "orientation": np.array([0, 0, 0]), "socket_frame": "calcn_r"},
-        "s4_r": {"radius": 0.032, "location": np.array([0.066234666199163503,    -0.01,  0.026364160674169801]), "orientation": np.array([0, 0, 0]), "socket_frame": "calcn_r"},
-        "s5_r": {"radius": 0.032, "location": np.array([0.059999999999999998,    -0.01,  -0.018760308461917698]), "orientation": np.array([0, 0, 0]), "socket_frame": "toes_r" },
+        "s1_r": {"radius": 0.025, "location": np.array([0.0019011578840796601,   -0.01,  -0.00382630379623308]), "orientation": np.array([0, 0, 0]), "socket_frame": "calcn_r"},
+        "s2_r": {"radius": 0.025, "location": np.array([0.14838639994206301,     -0.01,  -0.028713422052654002]), "orientation": np.array([0, 0, 0]), "socket_frame": "calcn_r"},
+        "s3_r": {"radius": 0.025, "location": np.array([0.13300117060705099,     -0.01,  0.051636247344956601]), "orientation": np.array([0, 0, 0]), "socket_frame": "calcn_r"},
+        "s4_r": {"radius": 0.025, "location": np.array([0.066234666199163503,    -0.01,  0.026364160674169801]), "orientation": np.array([0, 0, 0]), "socket_frame": "calcn_r"},
+        "s5_r": {"radius": 0.020, "location": np.array([0.059999999999999998,    -0.01,  -0.018760308461917698]), "orientation": np.array([0, 0, 0]), "socket_frame": "toes_r" },
+        #"s6_r": {"radius": 0.017, "location": np.array([0.15, -0.01, 0.01]), "orientation": np.array([0, 0, 0]), "socket_frame": "calcn_r" }, #New midfoot
         #"s6_r": {"radius": 0.032, "location": np.array([0.030841, -0.01, -0.0276085]), "orientation": np.array([0, 0, 0]), "socket_frame": "toes_r" },
-        "s6_r": {"radius": 0.032, "location": np.array([0.044999999999999998,    -0.01,  0.061856956754965199]), "orientation": np.array([0, 0, 0]), "socket_frame": "toes_r" },
+        "s6_r": {"radius": 0.025, "location": np.array([0.038552, -0.01, 0.0562525]), "orientation": np.array([0, 0, 0]), "socket_frame": "toes_r" },
+        #"s7_r": {"radius": 0.017, "location": np.array([0.07, -0.01, 0.023]), "orientation": np.array([0, 0, 0]), "socket_frame": "toes_r" }, # New mid toe
         #"s8_r": {"radius": 0.032, "location": np.array([0.07, -0.01, -0.026]), "orientation": np.array([0, 0, 0]), "socket_frame": "calcn_r" },
-        "s1_l": {"radius": 0.032, "location": np.array([0.0019011578840796601,   -0.01,  0.00382630379623308]), "orientation": np.array([0, 0, 0]), "socket_frame": "calcn_l"},
-        "s2_l": {"radius": 0.032, "location": np.array([0.14838639994206301,     -0.01,  0.028713422052654002]), "orientation": np.array([0, 0, 0]), "socket_frame": "calcn_l"},
-        "s3_l": {"radius": 0.032, "location": np.array([0.13300117060705099,     -0.01,  -0.051636247344956601]), "orientation": np.array([0, 0, 0]), "socket_frame": "calcn_l"},
-        "s4_l": {"radius": 0.032, "location": np.array([0.066234666199163503,    -0.01,  -0.026364160674169801]), "orientation": np.array([0, 0, 0]), "socket_frame": "calcn_l"},
-        "s5_l": {"radius": 0.032, "location": np.array([0.059999999999999998,    -0.01,  0.018760308461917698]), "orientation": np.array([0, 0, 0]), "socket_frame": "toes_l" },
-        "s6_l": {"radius": 0.032, "location": np.array([0.044999999999999998,    -0.01,  -0.061856956754965199]), "orientation": np.array([0, 0, 0]), "socket_frame": "toes_l" }}     
-        #"s8_l": {"radius": 0.032, "location": np.array([0.07, -0.01, 0.026]), "orientation": np.array([0, 0, 0]), "socket_frame": "calcn_l" }}
+        "s1_l": {"radius": 0.025, "location": np.array([0.0019011578840796601,   -0.01,  0.00382630379623308]), "orientation": np.array([0, 0, 0]), "socket_frame": "calcn_l"},
+        "s2_l": {"radius": 0.025, "location": np.array([0.14838639994206301,     -0.01,  0.028713422052654002]), "orientation": np.array([0, 0, 0]), "socket_frame": "calcn_l"},
+        "s3_l": {"radius": 0.025, "location": np.array([0.13300117060705099,     -0.01,  -0.051636247344956601]), "orientation": np.array([0, 0, 0]), "socket_frame": "calcn_l"},
+        "s4_l": {"radius": 0.025, "location": np.array([0.066234666199163503,    -0.01,  -0.026364160674169801]), "orientation": np.array([0, 0, 0]), "socket_frame": "calcn_l"},
+        "s5_l": {"radius": 0.025, "location": np.array([0.059999999999999998,    -0.01,  0.018760308461917698]), "orientation": np.array([0, 0, 0]), "socket_frame": "toes_l" },
+        #"s6_l": {"radius": 0.017, "location": np.array([0.15, -0.01, -0.01]), "orientation": np.array([0, 0, 0]), "socket_frame": "calcn_l" }, #New midfoot
+        "s6_l": {"radius": 0.025, "location": np.array([0.038552, -0.01, -0.0562525]), "orientation": np.array([0, 0, 0]), "socket_frame": "toes_l" }}     
+        #"s7_l": {"radius": 0.017, "location": np.array([0.07, -0.01, -0.023]), "orientation": np.array([0, 0, 0]), "socket_frame": "toes_l" }}
     reference_scale_factors = {"calcn_r": np.array([0.91392399999999996, 0.91392399999999996, 0.91392399999999996]),
                                "toes_r":  np.array([0.91392399999999996, 0.91392399999999996, 0.91392399999999996]),
                                "calcn_l": np.array([0.91392399999999996, 0.91392399999999996, 0.91392399999999996]),
