@@ -135,7 +135,7 @@ def solve_with_bounds(opti, tolerance, useExpressionGraphFunction):
         s_opts["expand"] = False
     s_opts["ipopt.hessian_approximation"] = "limited-memory"
     s_opts["ipopt.mu_strategy"] = "adaptive"
-    s_opts["ipopt.max_iter"] = 5000
+    s_opts["ipopt.max_iter"] = 10000
     s_opts["ipopt.tol"] = 10**(-tolerance)
     solver = ca.nlpsol("solver", "ipopt", prob, s_opts)
     # Solve.

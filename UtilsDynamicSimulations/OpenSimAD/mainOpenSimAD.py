@@ -94,7 +94,7 @@ def run_tracking(baseDir, dataDir, subject, settings, case='0',
     # Set scaleIsometricMuscleForce to scale the maximal isometric muscle
     # forces. By default, scaleIsometricMuscleForce is set to 1, and the forces
     # therefore correspond to those of the generic models.
-    scaleIsometricMuscleForce = 1
+    scaleIsometricMuscleForce = 4
     if 'scaleIsometricMuscleForce' in settings: 
         scaleIsometricMuscleForce = settings['scaleIsometricMuscleForce']
     
